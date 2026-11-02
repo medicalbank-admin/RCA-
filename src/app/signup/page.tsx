@@ -6,7 +6,9 @@ import Link from "next/link";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
-  updateProfile
+  updateProfile,
+  deleteUser,
+  signOut
 } from "firebase/auth";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -43,23 +45,35 @@ export default function SignupPage() {
   const [program, setProgram] = useState("MBBS");
 
   async function handleSignup(event: FormEvent<HTMLFormElement>) {
+    const formElement = event.currentTarget;
+
     event.preventDefault();
     setMessage("");
     setLoading(true);
 
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
 
     const fullName = String(form.get("fullName") || "").trim();
     const fatherName = String(form.get("fatherName") || "").trim();
     const nationalId = String(form.get("nationalId") || "").trim();
     const email = String(form.get("email") || "").trim().toLowerCase();
     const whatsapp = String(form.get("whatsapp") || "").trim();
-    const countryResidency = String(form.get("countryResidency") || "").trim();
-    const countryStudy = String(form.get("countryStudy") || "").trim();
-    const courseToStudy = String(form.get("courseToStudy") || "");
-    const graduationYear = String(form.get("graduationYear") || "");
+    const countryResidency = String(
+      form.get("countryResidency") || ""
+    ).trim();
+    const countryStudy = String(
+      form.get("countryStudy") || ""
+    ).trim();
+    const courseToStudy = String(
+      form.get("courseToStudy") || ""
+    );
+    const graduationYear = String(
+      form.get("graduationYear") || ""
+    );
     const password = String(form.get("password") || "");
-    const confirmPassword = String(form.get("confirmPassword") || "");
+    const confirmPassword = String(
+      form.get("confirmPassword") || ""
+    );
 
     if (!email.endsWith("@gmail.com")) {
       setMessage("Please enter a valid Gmail address.");
@@ -68,7 +82,9 @@ export default function SignupPage() {
     }
 
     if (password.length < 8) {
-      setMessage("Your password must contain at least 8 characters.");
+      setMessage(
+        "Your password must contain at least 8 characters."
+      );
       setLoading(false);
       return;
     }
@@ -80,7 +96,9 @@ export default function SignupPage() {
     }
 
     if (!courseToStudy) {
-      setMessage("Please select your course or examination pathway.");
+      setMessage(
+        "Please select your course or examination pathway."
+      );
       setLoading(false);
       return;
     }
@@ -91,9 +109,22 @@ export default function SignupPage() {
       return;
     }
 
+    if (
+      medicalYear === "Graduated" &&
+      (!/^\d{4}$/.test(graduationYear) ||
+        Number(graduationYear) < 1950 ||
+        Number(graduationYear) > new Date().getFullYear())
+    ) {
+      setMessage("Please enter a valid graduation year.");
+      setLoading(false);
+      return;
+    }
+
     let createdUser = false;
+    let profileSaved = false;
 
     try {
+      // Create Firebase Authentication account.
       const credential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -102,10 +133,12 @@ export default function SignupPage() {
 
       createdUser = true;
 
+      // Set the student's display name.
       await updateProfile(credential.user, {
         displayName: fullName
       });
 
+      // Save the student profile in Firestore.
       await setDoc(doc(db, "users", credential.user.uid), {
         uid: credential.user.uid,
         fullName,
@@ -124,42 +157,91 @@ export default function SignupPage() {
         createdAt: serverTimestamp()
       });
 
+      // Remember that the Firestore profile was saved.
+      profileSaved = true;
+
+      // Send email verification.
       await sendEmailVerification(credential.user);
 
+      // Sign the student out until email verification is complete.
+      try {
+        await signOut(auth);
+      } catch (signOutError) {
+        console.error(
+          "RCA signup sign-out error:",
+          signOutError
+        );
+      }
+
+      // Show success and clear the form.
       setMessage(
-        "Your RCA account has been created. Please check your email and verify your address before logging in."
+        "Your RCA account has been created successfully! Please check your Gmail inbox or spam folder and verify your email address before logging in."
       );
 
-      event.currentTarget.reset();
+      formElement.reset();
       setMedicalYear("");
       setProgram("MBBS");
+
     } catch (error: unknown) {
-      if (createdUser && auth.currentUser) {
+      console.error("RCA signup error:", error);
+
+      const firebaseError = error as {
+        code?: string;
+        message?: string;
+      };
+
+      // Never delete an account if its profile was already saved.
+      if (createdUser && !profileSaved && auth.currentUser) {
         try {
-          // Remove the newly created account if profile creation failed.
-          // Do not leave an account without its required student profile.
-          const { deleteUser } = await import("firebase/auth");
           await deleteUser(auth.currentUser);
-        } catch {
-          // The account may need manual cleanup if deletion is blocked.
+        } catch (deleteError) {
+          console.error(
+            "Could not clean up incomplete RCA account:",
+            deleteError
+          );
         }
       }
 
-      const firebaseError = error as { code?: string };
+      // If the profile exists, keep the account and sign out.
+      if (profileSaved && auth.currentUser) {
+        try {
+          await signOut(auth);
+        } catch (signOutError) {
+          console.error(
+            "RCA sign-out error:",
+            signOutError
+          );
+        }
+      }
 
       if (firebaseError.code === "auth/email-already-in-use") {
-        setMessage("This email is already registered. Please log in.");
-      } else if (firebaseError.code === "auth/weak-password") {
-        setMessage("Please choose a stronger password.");
-      } else if (firebaseError.code === "auth/invalid-email") {
-        setMessage("Please enter a valid email address.");
-      } else if (firebaseError.code === "permission-denied") {
         setMessage(
-          "Your profile could not be saved. Please check the Firestore security rules."
+          "This email is already registered. Please log in instead."
+        );
+      } else if (firebaseError.code === "auth/weak-password") {
+        setMessage(
+          "Please choose a stronger password."
+        );
+      } else if (firebaseError.code === "auth/invalid-email") {
+        setMessage(
+          "Please enter a valid email address."
+        );
+      } else if (
+        firebaseError.code === "permission-denied" ||
+        firebaseError.code === "firestore/permission-denied"
+      ) {
+        setMessage(
+          "Your student profile could not be saved. Please check the Firestore security rules."
+        );
+      } else if (profileSaved) {
+        setMessage(
+          "Your RCA profile was saved successfully, but the verification email could not be sent. Please contact RCA support to receive a verification link. Do not register again with this email."
         );
       } else {
         setMessage(
-          "Registration could not be completed. Please try again."
+          `Registration could not be completed. ${
+            firebaseError.code || "Please try again."
+          }`
         );
       }
     } finally {
@@ -170,6 +252,7 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-3xl rounded-2xl bg-white p-6 shadow-lg sm:p-10">
+
         <div className="mb-8 text-center">
           <Link href="/">
             <img
@@ -178,30 +261,80 @@ export default function SignupPage() {
               className="mx-auto mb-4 h-20 w-20 object-contain"
             />
           </Link>
+
           <p className="text-sm font-bold tracking-[3px] text-red-700">
             ROSE COACHING ACADEMY
           </p>
+
           <h1 className="mt-2 text-3xl font-bold text-slate-900">
             Student Registration
           </h1>
+
           <p className="mt-2 text-gray-500">
             Create your RCA student account.
           </p>
         </div>
 
-        <form onSubmit={handleSignup} className="space-y-5">
+        <form
+          onSubmit={handleSignup}
+          className="space-y-5"
+        >
           <div>
             <h2 className="mb-4 text-xl font-bold text-slate-900">
               Personal Information
             </h2>
+
             <div className="grid gap-4 sm:grid-cols-2">
-              <input name="fullName" placeholder="Full Name" required className={inputClass} />
-              <input name="fatherName" placeholder="Father Name" required className={inputClass} />
-              <input name="nationalId" placeholder="CNIC / National ID / Passport Number" required className={inputClass} />
-              <input name="email" type="email" placeholder="Gmail Address" required className={inputClass} />
-              <input name="whatsapp" type="tel" placeholder="WhatsApp (+country code)" required className={inputClass} />
-              <input name="countryResidency" placeholder="Country of Residency" required className={inputClass} />
-              <input name="countryStudy" placeholder="Country of Study" required className={inputClass} />
+              <input
+                name="fullName"
+                placeholder="Full Name"
+                required
+                className={inputClass}
+              />
+
+              <input
+                name="fatherName"
+                placeholder="Father Name"
+                required
+                className={inputClass}
+              />
+
+              <input
+                name="nationalId"
+                placeholder="CNIC / National ID / Passport Number"
+                required
+                className={inputClass}
+              />
+
+              <input
+                name="email"
+                type="email"
+                placeholder="Gmail Address"
+                required
+                className={inputClass}
+              />
+
+              <input
+                name="whatsapp"
+                type="tel"
+                placeholder="WhatsApp (+country code)"
+                required
+                className={inputClass}
+              />
+
+              <input
+                name="countryResidency"
+                placeholder="Country of Residency"
+                required
+                className={inputClass}
+              />
+
+              <input
+                name="countryStudy"
+                placeholder="Country of Study"
+                required
+                className={inputClass}
+              />
             </div>
           </div>
 
@@ -223,7 +356,9 @@ export default function SignupPage() {
               <select
                 name="medicalYear"
                 value={medicalYear}
-                onChange={(e) => setMedicalYear(e.target.value)}
+                onChange={(e) =>
+                  setMedicalYear(e.target.value)
+                }
                 required
                 className={inputClass}
               >
@@ -242,7 +377,7 @@ export default function SignupPage() {
                   name="graduationYear"
                   type="number"
                   min="1950"
-                  max="2100"
+                  max={new Date().getFullYear()}
                   placeholder="Graduation Year"
                   required
                   className={inputClass}
@@ -255,9 +390,15 @@ export default function SignupPage() {
                 defaultValue=""
                 className={inputClass}
               >
-                <option value="">Select Course / Pathway</option>
+                <option value="">
+                  Select Course / Pathway
+                </option>
+
                 {pathways.map((pathway) => (
-                  <option key={pathway} value={pathway}>
+                  <option
+                    key={pathway}
+                    value={pathway}
+                  >
                     {pathway}
                   </option>
                 ))}
@@ -269,6 +410,7 @@ export default function SignupPage() {
             <h2 className="mb-4 text-xl font-bold text-slate-900">
               Create Your Password
             </h2>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <input
                 name="password"
@@ -279,6 +421,7 @@ export default function SignupPage() {
                 autoComplete="new-password"
                 className={inputClass}
               />
+
               <input
                 name="confirmPassword"
                 type="password"
@@ -294,6 +437,7 @@ export default function SignupPage() {
           {message && (
             <p
               role="status"
+              aria-live="polite"
               className="rounded-lg bg-red-50 p-4 text-sm text-red-800"
             >
               {message}
@@ -305,13 +449,18 @@ export default function SignupPage() {
             disabled={loading}
             className="w-full rounded-lg bg-red-700 px-6 py-4 font-bold text-white hover:bg-red-800 disabled:opacity-60"
           >
-            {loading ? "Creating Account..." : "Create RCA Account"}
+            {loading
+              ? "Creating Account..."
+              : "Create RCA Account"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Already registered?{" "}
-          <Link href="/login" className="font-bold text-red-700">
+          <Link
+            href="/login"
+            className="font-bold text-red-700"
+          >
             Login here
           </Link>
         </p>
@@ -319,4 +468,4 @@ export default function SignupPage() {
     </main>
   );
   }
-      
+                           
