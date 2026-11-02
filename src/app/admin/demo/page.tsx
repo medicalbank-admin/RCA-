@@ -1404,7 +1404,9 @@ export default function DemoManagementPage() {
                   </code>
                   <button
                     type="button"
-                    onClick={() => GenUI.copy(demoImportExample)}
+                    onClick={() => { 
+                      void navigator.clipboard.writeText(demoImportExample);
+}}
                     className="mt-3 text-xs font-medium text-sky-400 hover:text-sky-300"
                   >
                     Copy example
