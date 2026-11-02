@@ -1,3 +1,4 @@
+
 "use client";
 
 import { FormEvent, useState } from "react";
@@ -7,7 +8,8 @@ import {
   sendPasswordResetEmail,
   signOut
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -35,17 +37,38 @@ export default function LoginPage() {
       if (!credential.user.emailVerified) {
         await signOut(auth);
         setMessageType("error");
-        setMessage(
-          "Please verify your email address using the link we sent before logging in."
-        );
+        setMessage("Please verify your email address before logging in.");
         return;
       }
 
-      setMessageType("success");
-      setMessage("Login successful. Redirecting to your student dashboard...");
+      // Read the signed-in user's own Firestore profile.
+      const profileRef = doc(db, "users", credential.user.uid);
+      const profileSnapshot = await getDoc(profileRef);
 
-      window.location.href = "/dashboard";
+      if (!profileSnapshot.exists()) {
+        await signOut(auth);
+        setMessageType("error");
+        setMessage("Your RCA profile was not found. Please contact support.");
+        return;
+      }
+
+      const profile = profileSnapshot.data();
+
+      setMessageType("success");
+
+      if (profile.role === "admin") {
+        setMessage("Admin login successful. Opening admin portal...");
+        window.location.replace("/admin");
+      } else {
+        setMessage("Login successful. Opening student portal...");
+        window.location.replace("/dashboard");
+      }
+
     } catch (error: unknown) {
+      if (auth.currentUser) {
+        await signOut(auth);
+      }
+
       const firebaseError = error as { code?: string };
 
       setMessageType("error");
@@ -59,6 +82,7 @@ export default function LoginPage() {
       } else if (firebaseError.code === "auth/too-many-requests") {
         setMessage("Too many attempts. Please wait and try again.");
       } else {
+        console.error("Login error:", error);
         setMessage("Login failed. Please check your details and try again.");
       }
     } finally {
@@ -85,13 +109,14 @@ export default function LoginPage() {
       setMessage("If an account exists for that address, a password reset email has been sent.");
     } catch {
       setMessageType("error");
-      setMessage("Unable to send the reset email. Please check the address and try again.");
+      setMessage("Unable to send the reset email. Please try again.");
     }
   }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10">
       <div className="w-full max-w-md rounded-2xl bg-white p-7 shadow-lg sm:p-10">
+
         <div className="mb-8 text-center">
           <Link href="/">
             <img
@@ -106,7 +131,7 @@ export default function LoginPage() {
           </p>
 
           <h1 className="mt-3 text-3xl font-bold text-slate-900">
-            Student Login
+            Login to RCA
           </h1>
 
           <p className="mt-2 text-sm text-gray-500">
@@ -115,6 +140,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
+
           <div>
             <label className="mb-2 block text-sm font-semibold text-slate-800">
               Gmail Address
@@ -173,6 +199,7 @@ export default function LoginPage() {
           >
             {loading ? "Signing In..." : "Login to RCA"}
           </button>
+
         </form>
 
         <p className="mt-7 text-center text-sm text-gray-600">
@@ -187,7 +214,8 @@ export default function LoginPage() {
             ← Back to Homepage
           </Link>
         </p>
+
       </div>
     </main>
   );
-  }
+}
