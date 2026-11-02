@@ -2,8 +2,82 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Deny all client access until secure
-    // student and admin permissions are configured.
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        request.auth.token.admin == true;
+    }
+
+    match /users/{uid} {
+
+      // Students can read their own profile.
+      // Admin access requires a trusted custom claim.
+      allow get: if isOwner(uid) || isAdmin();
+
+      // Only admins can list all student profiles.
+      allow list: if isAdmin();
+
+      // A student can create only their own initial profile.
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasAll([
+          'uid',
+          'fullName',
+          'fatherName',
+          'nationalId',
+          'email',
+          'whatsapp',
+          'countryResidency',
+          'countryStudy',
+          'medicalProgram',
+          'medicalYear',
+          'graduationYear',
+          'courseToStudy',
+          'accountStatus',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'fullName',
+          'fatherName',
+          'nationalId',
+          'email',
+          'whatsapp',
+          'countryResidency',
+          'countryStudy',
+          'medicalProgram',
+          'medicalYear',
+          'graduationYear',
+          'courseToStudy',
+          'accountStatus',
+          'createdAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.accountStatus == 'pending_verification'
+        && request.resource.data.medicalProgram in ['MBBS', 'MD']
+        && request.resource.data.medicalYear in [
+          '1', '2', '3', '4', '5', '6', 'Graduated'
+        ]
+        && request.resource.data.courseToStudy is string
+        && request.resource.data.fullName is string
+        && request.resource.data.nationalId is string
+        && request.resource.data.createdAt == request.time;
+
+      // Students cannot change their own role, status,
+      // identity details, or membership information.
+      allow update, delete: if isAdmin();
+    }
+
+    // All other collections remain denied unless
+    // explicitly permitted in future rules.
     match /{document=**} {
       allow read, write: if false;
     }
