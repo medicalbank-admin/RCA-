@@ -115,6 +115,7 @@ export default function DemoManagementPage() {
   const [videoTitle, setVideoTitle] = useState("");
   const [videoDescription, setVideoDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoDuration, setVideoDuration] = useState("");
   const [videoPathway, setVideoPathway] = useState(pathways[0]);
 
   // Demo exam form state
@@ -234,21 +235,23 @@ export default function DemoManagementPage() {
 
   // Video form helpers
   function resetVideoForm() {
-    setVideoTitle("");
-    setVideoDescription("");
-    setVideoUrl("");
-    setVideoPathway(pathways[0]);
-    setEditingVideo(null);
-    setShowVideoForm(false);
+  setVideoTitle("");
+  setVideoDescription("");
+  setVideoUrl("");
+  setVideoDuration("");
+  setVideoPathway(pathways[0]);
+  setEditingVideo(null);
+  setShowVideoForm(false);
   }
 
   function startEditVideo(video: DemoVideo) {
-    setEditingVideo(video);
-    setVideoTitle(video.title);
-    setVideoDescription(video.description || "");
-    setVideoUrl(video.videoUrl);
-    setVideoPathway(video.pathway);
-    setShowVideoForm(true);
+  setEditingVideo(video);
+  setVideoTitle(video.title);
+  setVideoDescription(video.description || "");
+  setVideoUrl(video.videoUrl);
+  setVideoDuration(video.duration || "");
+  setVideoPathway(video.pathway);
+  setShowVideoForm(true);
   }
 
   async function saveVideo(event: React.FormEvent<HTMLFormElement>) {
@@ -278,13 +281,14 @@ export default function DemoManagementPage() {
     setSuccess("");
 
     try {
-      const videoData = {
-        title: videoTitle.trim(),
-        description: videoDescription.trim(),
-        videoUrl: videoUrl.trim(),
-        pathway: videoPathway,
-        updatedAt: serverTimestamp()
-      };
+  const videoData = {
+    title: videoTitle.trim(),
+    description: videoDescription.trim(),
+    videoUrl: videoUrl.trim(),
+    duration: videoDuration.trim(),
+    pathway: videoPathway,
+    updatedAt: serverTimestamp()
+  };
 
       if (editingVideo) {
         await updateDoc(
