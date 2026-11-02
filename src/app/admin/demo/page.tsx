@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import {
+import { 
   addDoc,
   collection,
   deleteDoc,
@@ -27,6 +27,7 @@ import {
   Save,
   X,
   FileUp,
+  FileText,
   CheckCircle2
 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
@@ -1348,6 +1349,7 @@ export default function DemoManagementPage() {
           students direct access to the examQuestions collection.
         </p>
 
+        
         <div className="space-y-3">
           {questions
             .filter((question) => question.examId === selectedExam.id)
@@ -1361,24 +1363,30 @@ export default function DemoManagementPage() {
                     <p className="text-xs font-semibold text-blue-700">
                       Question {index + 1}
                     </p>
+
                     <p className="mt-1 font-semibold text-slate-900">
                       {question.question}
                     </p>
 
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {question.options.map((option, optionIndex) => (
-                        <p
-                          key={optionIndex}
-                          className={`rounded-lg p-2 text-sm ${
-                            question.correctAnswer ===
-                            String.fromCharCode(65 + optionIndex)
-                              ? "bg-green-50 font-semibold text-green-700"
-                              : "bg-slate-50 text-slate-600"
-                          }`}
-                        >
-                          {String.fromCharCode(65 + optionIndex)}. {option}
-                        </p>
-                      ))}
+                      {question.options.map((option, optionIndex) => {
+                        const isCorrect =
+                          question.correctAnswer ===
+                          String.fromCharCode(65 + optionIndex);
+
+                        return (
+                          <p
+                            key={optionIndex}
+                            className={
+                              isCorrect
+                                ? "rounded-lg bg-green-50 p-2 text-sm font-semibold text-green-700"
+                                : "rounded-lg bg-slate-50 p-2 text-sm text-slate-600"
+                            }
+                          >
+                            {String.fromCharCode(65 + optionIndex)}. {option}
+                          </p>
+                        );
+                      })}
                     </div>
 
                     {question.explanation && (
@@ -1426,7 +1434,6 @@ export default function DemoManagementPage() {
 </main>
 );
 }
-
 function SummaryCard({
   title,
   value,
@@ -1444,6 +1451,7 @@ function SummaryCard({
         <p className="text-sm font-medium text-slate-500">
           {title}
         </p>
+
         <div className={`rounded-xl p-2 ${color}`}>
           <Icon size={20} />
         </div>
@@ -1467,10 +1475,11 @@ function EmptyState({
         size={30}
         className="mx-auto mb-3 text-slate-400"
       />
+
       <p className="text-sm text-slate-500">
         {message}
       </p>
     </div>
   );
-      }
-   
+        }
+        
