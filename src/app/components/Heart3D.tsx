@@ -3,13 +3,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import {
-  Bounds,
-  Center,
-  Html,
-  OrbitControls,
-  useGLTF,
-} from "@react-three/drei";
+import { Html, OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 
 type HeartMode = "external" | "internal";
@@ -20,342 +14,289 @@ const MODELS = {
 };
 
 function HeartModel({ mode }: { mode: HeartMode }) {
-  const modelPath = MODELS[mode];
-  const { scene } = useGLTF(modelPath);
+  const { scene } = useGLTF(MODELS[mode]);
 
   const heart = useMemo(() => {
-    const cloned = scene.clone(true);
+    const model = scene.clone(true);
 
-    cloned.traverse((object) => {
+    const bounds = new THREE.Box3().setFromObject(model);
+    const dimensions = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+
+    const largest = Math.max(
+      dimensions.x,
+      dimensions.y,
+      dimensions.z
+    );
+
+    const scale = largest > 0 ? 3.5 / largest : 1;
+
+    model.scale.setScalar(scale);
+    model.position.set(
+      -center.x * scale,
+      -center.y * scale,
+      -center.z * scale
+    );
+
+    model.traverse((object) => {
       if (object instanceof THREE.Mesh) {
         object.castShadow = true;
         object.receiveShadow = true;
       }
     });
 
-    return cloned;
+    return model;
   }, [scene]);
 
-  return (
-    <Bounds fit clip observe margin={1.35}>
-      <Center>
-        <primitive object={heart} />
-      </Center>
-    </Bounds>
-  );
+  return <primitive object={heart} />;
 }
 
 function LoadingHeart() {
   return (
     <Html center>
-      <div
-        style={{
-          color: "#ffffff",
-          fontSize: "14px",
-          whiteSpace: "nowrap",
-          background: "#111827",
-          padding: "12px 18px",
-          borderRadius: "12px",
-        }}
-      >
-        Loading anatomical heart...
-      </div>
+      <span className="heart-loading">Loading heart...</span>
     </Html>
   );
 }
-
-const externalStructures = [
-  "Aorta",
-  "Pulmonary trunk",
-  "Superior vena cava",
-  "Inferior vena cava",
-  "Coronary arteries",
-  "Right and left auricles",
-];
-
-const internalStructures = [
-  "Right atrium",
-  "Left atrium",
-  "Right ventricle",
-  "Left ventricle",
-  "Tricuspid valve",
-  "Mitral valve",
-  "Interventricular septum",
-  "Aortic and pulmonary valves",
-];
 
 export default function Heart3D() {
   const [mode, setMode] = useState<HeartMode>("external");
   const [autoRotate, setAutoRotate] = useState(true);
 
   const structures =
-    mode === "external" ? externalStructures : internalStructures;
+    mode === "external"
+      ? [
+          "Aorta",
+          "Pulmonary trunk",
+          "Superior vena cava",
+          "Inferior vena cava",
+          "Coronary arteries",
+        ]
+      : [
+          "Right atrium",
+          "Left atrium",
+          "Right ventricle",
+          "Left ventricle",
+          "Tricuspid valve",
+          "Mitral valve",
+          "Interventricular septum",
+        ];
 
   return (
-    <section className="rca-heart-section">
-      <div className="rca-heart-heading">
-        <span className="rca-heart-eyebrow">EXPLORE HUMAN ANATOMY</span>
+    <div className="rca-hero-heart">
 
-        <h2>Discover the Human Heart</h2>
+      <div className="heart-view-controls">
+        <button
+          type="button"
+          className={mode === "external" ? "selected" : ""}
+          onClick={() => setMode("external")}
+          aria-pressed={mode === "external"}
+        >
+          External View
+        </button>
 
-        <p>
-          Explore the heart in interactive 3D. Rotate the model,
-          examine its external anatomy and explore its internal chambers.
-        </p>
+        <button
+          type="button"
+          className={mode === "internal" ? "selected" : ""}
+          onClick={() => setMode("internal")}
+          aria-pressed={mode === "internal"}
+        >
+          Explore Inside
+        </button>
       </div>
 
-      <div className="rca-heart-viewer">
-        <div className="rca-heart-toolbar">
-          <button
-            type="button"
-            className={mode === "external" ? "active" : ""}
-            onClick={() => setMode("external")}
-            aria-pressed={mode === "external"}
-          >
-            External View
-          </button>
+      <div className="heart-model">
+        <Canvas
+          key={mode}
+          camera={{
+            position: [0, 0, 5],
+            fov: 35,
+            near: 0.01,
+            far: 100,
+          }}
+          dpr={[1, 1.5]}
+          gl={{
+            alpha: true,
+            antialias: true,
+            powerPreference: "default",
+          }}
+        >
+          <ambientLight intensity={1.8} />
 
-          <button
-            type="button"
-            className={mode === "internal" ? "active" : ""}
-            onClick={() => setMode("internal")}
-            aria-pressed={mode === "internal"}
-          >
-            Explore Inside
-          </button>
-        </div>
+          <directionalLight
+            position={[4, 5, 5]}
+            intensity={2.5}
+          />
 
-        <div className="rca-heart-canvas">
-          <Canvas
-            key={mode}
-            camera={{
-              position: [0, 0, 4],
-              fov: 40,
-              near: 0.01,
-              far: 100,
-            }}
-            dpr={[1, 1.5]}
-            gl={{
-              antialias: true,
-              alpha: true,
-              powerPreference: "default",
-            }}
-          >
-            <color attach="background" args={["#101827"]} />
+          <directionalLight
+            position={[-4, 2, -3]}
+            intensity={1.5}
+            color="#ffb3a5"
+          />
 
-            <ambientLight intensity={1.5} />
+          <pointLight
+            position={[0, 0, 4]}
+            intensity={0.8}
+          />
 
-            <directionalLight
-              position={[4, 5, 5]}
-              intensity={2.2}
-            />
+          <Suspense fallback={<LoadingHeart />}>
+            <HeartModel mode={mode} />
+          </Suspense>
 
-            <directionalLight
-              position={[-4, 2, -3]}
-              intensity={1.1}
-              color="#ffb3a5"
-            />
-
-            <Suspense fallback={<LoadingHeart />}>
-              <HeartModel mode={mode} />
-            </Suspense>
-
-            <OrbitControls
-              makeDefault
-              enablePan={false}
-              enableZoom={true}
-              minDistance={1.8}
-              maxDistance={8}
-              autoRotate={autoRotate}
-              autoRotateSpeed={1.1}
-              minPolarAngle={0.3}
-              maxPolarAngle={Math.PI - 0.3}
-            />
-          </Canvas>
-        </div>
-
-        <div className="rca-heart-controls">
-          <button
-            type="button"
-            onClick={() => setAutoRotate(!autoRotate)}
-          >
-            {autoRotate ? "Pause Rotation" : "Start Rotation"}
-          </button>
-
-          <span>Drag to rotate · Pinch to zoom</span>
-        </div>
+          <OrbitControls
+            makeDefault
+            enablePan={false}
+            enableZoom
+            minDistance={2.8}
+            maxDistance={7}
+            autoRotate={autoRotate}
+            autoRotateSpeed={1.1}
+          />
+        </Canvas>
       </div>
 
-      <div className="rca-heart-info">
-        <div>
-          <span className="rca-heart-eyebrow">
-            {mode === "external"
-              ? "EXTERNAL ANATOMY"
-              : "INTERNAL ANATOMY"}
-          </span>
+      <div className="heart-rotation-control">
+        <button
+          type="button"
+          onClick={() => setAutoRotate(!autoRotate)}
+        >
+          {autoRotate ? "Ⅱ Pause Rotation" : "▶ Start Rotation"}
+        </button>
 
-          <h3>
-            {mode === "external"
-              ? "External Heart Structures"
-              : "Inside the Heart"}
-          </h3>
+        <span>Drag to rotate · Pinch to zoom</span>
+      </div>
 
-          <p>
-            {mode === "external"
-              ? "Examine the major blood vessels and external structures of the human heart."
-              : "Explore the chambers, valves and muscular wall separating the right and left sides of the heart."}
-          </p>
-        </div>
+      <div className="heart-anatomy">
+        <span className="heart-anatomy-heading">
+          {mode === "external"
+            ? "EXTERNAL ANATOMY"
+            : "INTERNAL ANATOMY"}
+        </span>
 
-        <ul>
-          {structures.map((structure) => (
-            <li key={structure}>{structure}</li>
+        <div className="heart-structure-list">
+          {structures.map((item) => (
+            <span key={item}>{item}</span>
           ))}
-        </ul>
+        </div>
       </div>
-
-      <p className="rca-heart-note">
-        Educational 3D visualization. Anatomical structures should be
-        verified against standard medical references.
-      </p>
 
       <style jsx>{`
-        .rca-heart-section {
+        .rca-hero-heart {
           width: 100%;
-          padding: 55px 20px;
-          color: #172033;
+          min-width: 0;
+          color: white;
+          background: transparent;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
-        .rca-heart-heading {
-          max-width: 720px;
-          margin: 0 auto 28px;
-          text-align: center;
-        }
-
-        .rca-heart-eyebrow {
-          color: #bd3650;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 2px;
-        }
-
-        .rca-heart-heading h2 {
-          margin: 12px 0;
-          font-size: clamp(26px, 5vw, 40px);
-          font-weight: 800;
-        }
-
-        .rca-heart-heading p,
-        .rca-heart-info p {
-          color: #647084;
-          line-height: 1.7;
-        }
-
-        .rca-heart-viewer {
-          max-width: 850px;
-          margin: auto;
-          overflow: hidden;
-          border-radius: 22px;
-          background: #101827;
-          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.14);
-        }
-
-        .rca-heart-toolbar {
+        .heart-view-controls {
           display: flex;
           justify-content: center;
-          gap: 10px;
           flex-wrap: wrap;
-          padding: 18px 12px 12px;
+          gap: 10px;
+          position: relative;
+          z-index: 2;
         }
 
-        .rca-heart-toolbar button,
-        .rca-heart-controls button {
-          border: 1px solid rgba(255,255,255,0.3);
+        .heart-view-controls button,
+        .heart-rotation-control button {
+          padding: 10px 16px;
+          border: 1px solid rgba(255,255,255,0.4);
           border-radius: 30px;
-          padding: 11px 19px;
           background: transparent;
           color: white;
+          font-size: 12px;
           font-weight: 700;
           cursor: pointer;
         }
 
-        .rca-heart-toolbar button.active {
-          background: #c83752;
-          border-color: #c83752;
+        .heart-view-controls button.selected {
+          background: #bd263d;
+          border-color: #bd263d;
         }
 
-        .rca-heart-canvas {
+        .heart-model {
           width: 100%;
-          height: 430px;
-          touch-action: pan-y;
+          height: 480px;
+          background: transparent;
+          overflow: visible;
         }
 
-        .rca-heart-controls {
+        .heart-model canvas {
+          background: transparent !important;
+        }
+
+        .heart-rotation-control {
           display: flex;
-          align-items: center;
           justify-content: center;
+          align-items: center;
           flex-wrap: wrap;
-          gap: 15px;
-          padding: 12px 15px 20px;
-          color: #cbd5e1;
-          font-size: 12px;
-        }
-
-        .rca-heart-controls button {
-          background: #26364c;
-        }
-
-        .rca-heart-info {
-          max-width: 850px;
-          margin: 30px auto 0;
-          padding: 25px;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 25px;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-        }
-
-        .rca-heart-info h3 {
-          font-size: 22px;
-          margin: 10px 0;
-        }
-
-        .rca-heart-info ul {
-          margin: 0;
-          padding-left: 20px;
-          color: #374151;
-          line-height: 2;
-        }
-
-        .rca-heart-note {
-          max-width: 850px;
-          margin: 15px auto 0;
-          color: #8490a0;
+          gap: 12px;
+          margin-top: -15px;
+          color: #d5deeb;
           font-size: 11px;
+          position: relative;
+          z-index: 2;
+        }
+
+        .heart-rotation-control button {
+          background: rgba(255,255,255,0.1);
+        }
+
+        .heart-anatomy {
+          width: 100%;
+          margin-top: 22px;
           text-align: center;
         }
 
-        @media (max-width: 600px) {
-          .rca-heart-section {
-            padding: 35px 12px;
+        .heart-anatomy-heading {
+          color: #f08091;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 2px;
+        }
+
+        .heart-structure-list {
+          display: flex;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 8px 18px;
+          margin-top: 12px;
+        }
+
+        .heart-structure-list span {
+          color: #e0e8f4;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+
+        .heart-loading {
+          color: white;
+          font-size: 13px;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 700px) {
+          .heart-model {
+            height: 390px;
           }
 
-          .rca-heart-canvas {
-            height: 340px;
+          .heart-view-controls button {
+            padding: 9px 13px;
+            font-size: 11px;
           }
 
-          .rca-heart-info {
-            grid-template-columns: 1fr;
-            padding: 19px;
+          .heart-structure-list {
+            gap: 7px 12px;
           }
 
-          .rca-heart-toolbar button {
-            padding: 10px 14px;
-            font-size: 12px;
+          .heart-structure-list span {
+            font-size: 11px;
           }
         }
       `}</style>
-    </section>
+    </div>
   );
-      }
+}
