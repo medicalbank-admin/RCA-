@@ -1,3 +1,4 @@
+
 @import "tailwindcss";
 
 :root {
@@ -29,6 +30,10 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+button {
+  font: inherit;
 }
 
 .container {
@@ -202,15 +207,19 @@ a {
 .hero {
   background: linear-gradient(120deg, #101d36, #1b3154);
   color: white;
-  padding: 85px 0 95px;
+  padding: 65px 0 75px;
   overflow: hidden;
 }
 
 .hero-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: .9fr 1.1fr;
   align-items: center;
-  gap: 45px;
+  gap: 20px;
+}
+
+.hero-copy {
+  min-width: 0;
 }
 
 .hero-copy h1 {
@@ -245,55 +254,31 @@ a {
   line-height: 1.7;
 }
 
-/* 3D HEART */
+/* TRANSPARENT HERO HEART */
 
-.heart-3d-stage {
-  position: relative;
+.hero-heart {
   width: 100%;
-  height: 570px;
-  border: 1px solid rgba(180,198,226,.3);
-  border-radius: 28px;
-  background: radial-gradient(
-    circle at 50% 42%,
-    rgba(255,255,255,.13),
-    rgba(255,255,255,.035) 60%,
-    transparent
-  );
-  overflow: hidden;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.heart-3d-stage canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  touch-action: pan-y;
-}
+/* Heart component wrapper */
 
-.heart-3d-glow {
-  position: absolute;
-  top: 22%;
-  left: 25%;
-  width: 50%;
-  height: 50%;
-  border-radius: 50%;
-  background: rgba(235,62,91,.18);
-  filter: blur(65px);
-  pointer-events: none;
-}
-
-.anatomy-label {
-  display: inline-block;
-  padding: 7px 10px;
-  border: 1px solid rgba(255,255,255,.35);
-  border-radius: 20px;
-  background: rgba(12,23,44,.92);
+.rca-hero-heart {
+  width: 100%;
+  min-width: 0;
   color: white;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: 0 4px 14px rgba(0,0,0,.2);
-  pointer-events: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
+
+/* Heart loading */
 
 .heart-loading,
 .heart-loading-text {
@@ -303,56 +288,110 @@ a {
   white-space: nowrap;
 }
 
-.heart-3d-instruction {
-  position: absolute;
+/* HEART CONTROLS */
+
+.heart-view-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  position: relative;
   z-index: 5;
-  top: 15px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 12px;
-  border-radius: 20px;
-  background: rgba(12,23,44,.7);
-  color: #d5dbea;
-  font-size: 10px;
-  white-space: nowrap;
-  pointer-events: none;
 }
 
-.heart-3d-instruction span {
-  color: #ff8b9a;
-  font-size: 15px;
-  margin-right: 5px;
-}
-
-.heart-3d-caption {
-  position: absolute;
-  z-index: 4;
-  bottom: 20px;
-  left: 12px;
-  right: 12px;
-  text-align: center;
-  pointer-events: none;
-  text-shadow: 0 2px 8px rgba(0,0,0,.5);
-}
-
-.heart-3d-caption h2 {
-  font-size: clamp(19px, 2vw, 25px);
-  margin: 9px 0;
-}
-
-.heart-3d-caption p {
-  color: #d5dbea;
+.heart-view-controls button,
+.heart-rotation-control button {
+  padding: 10px 16px;
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 30px;
+  background: transparent;
+  color: white;
   font-size: 12px;
-  line-height: 1.6;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
 }
 
-.heart-caption-bottom {
-  display: inline-block;
-  margin-top: 6px;
-  color: var(--pink);
+.heart-view-controls button:hover,
+.heart-rotation-control button:hover {
+  background: rgba(255,255,255,.15);
+}
+
+.heart-view-controls button.selected {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* TRANSPARENT 3D CANVAS */
+
+.heart-model {
+  width: 100%;
+  height: 480px;
+  background: transparent;
+  overflow: visible;
+  position: relative;
+}
+
+.heart-model canvas {
+  background: transparent !important;
+  touch-action: pan-y;
+}
+
+/* ROTATION CONTROL */
+
+.heart-rotation-control {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: -15px;
+  color: #d5dbea;
+  font-size: 11px;
+  position: relative;
+  z-index: 5;
+}
+
+.heart-rotation-control button {
+  background: rgba(255,255,255,.1);
+}
+
+/* ANATOMICAL LABELS ON BLUE BACKGROUND */
+
+.heart-anatomy {
+  width: 100%;
+  margin-top: 22px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.heart-anatomy-heading {
+  color: #f08091;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 2px;
+}
+
+.heart-structure-list {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 12px;
+}
+
+.heart-structure-list span {
+  color: #e0e8f4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.heart-loading {
+  color: white;
 }
 
 /* COURSES */
@@ -530,12 +569,12 @@ a {
 
 @media (max-width: 900px) {
   .hero-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 25px;
+    grid-template-columns: .9fr 1.1fr;
+    gap: 15px;
   }
 
-  .heart-3d-stage {
-    height: 510px;
+  .heart-model {
+    height: 430px;
   }
 
   .course-grid {
@@ -642,12 +681,12 @@ a {
   }
 
   .hero {
-    padding: 65px 0 70px;
+    padding: 55px 0 65px;
   }
 
   .hero-grid {
     grid-template-columns: 1fr;
-    gap: 38px;
+    gap: 30px;
   }
 
   .hero-copy h1 {
@@ -667,17 +706,25 @@ a {
     padding: 14px 17px;
   }
 
-  .heart-3d-stage {
-    height: 510px;
+  .hero-heart {
+    width: 100%;
   }
 
-  .anatomy-label {
-    font-size: 9px;
-    padding: 6px 8px;
+  .heart-model {
+    height: 390px;
   }
 
-  .heart-3d-caption h2 {
-    font-size: 19px;
+  .heart-view-controls button {
+    padding: 9px 13px;
+    font-size: 11px;
+  }
+
+  .heart-structure-list {
+    gap: 7px 12px;
+  }
+
+  .heart-structure-list span {
+    font-size: 11px;
   }
 
   .course-grid {
@@ -708,6 +755,8 @@ a {
   }
 }
 
+/* SMALL MOBILE */
+
 @media (max-width: 380px) {
   .brand img {
     width: 55px;
@@ -718,15 +767,16 @@ a {
     font-size: 22px;
   }
 
-  .heart-3d-stage {
-    height: 470px;
+  .heart-model {
+    height: 350px;
   }
 
-  .anatomy-label {
-    font-size: 8px;
-    padding: 5px 7px;
+  .heart-structure-list span {
+    font-size: 10px;
   }
 }
+
+/* ACCESSIBILITY */
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -737,5 +787,4 @@ a {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
-    }
-  
+}
