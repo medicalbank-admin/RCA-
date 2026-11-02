@@ -1426,7 +1426,7 @@ export default function DemoManagementPage() {
           >
             Close
           </button>
-        </div>
+       </div>
       </div>
     </div>
   )}
@@ -1434,6 +1434,7 @@ export default function DemoManagementPage() {
 </main>
 );
 }
+
 function SummaryCard({
   title,
   value,
