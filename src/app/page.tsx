@@ -1,43 +1,38 @@
+
 const courses = [
   {
     title: "MBBS & MD",
-    description:
-      "Structured medical education and academic support for medical students.",
+    description: "Structured medical education and academic support for medical students.",
     icon: "🩺",
     tag: "Medical Education"
   },
   {
     title: "NRE Preparation",
-    description:
-      "Focused preparation resources for the National Registration Examination.",
+    description: "Focused preparation resources for the National Registration Examination.",
     icon: "📚",
     tag: "Licensing Exam"
   },
   {
     title: "USMLE Preparation",
-    description:
-      "Build your medical knowledge and prepare for your USMLE journey.",
+    description: "Build your medical knowledge and prepare for your USMLE journey.",
     icon: "🌎",
     tag: "International Pathway"
   },
   {
     title: "PLAB Preparation",
-    description:
-      "Prepare for your professional medical licensing pathway in the UK.",
+    description: "Prepare for your professional medical licensing pathway in the UK.",
     icon: "🎓",
     tag: "International Pathway"
   },
   {
     title: "SMLE Preparation",
-    description:
-      "Study resources and exam preparation for the Saudi medical licensing exam.",
+    description: "Study resources and exam preparation for the Saudi medical licensing exam.",
     icon: "🏥",
     tag: "Licensing Exam"
   },
   {
     title: "DHA, AMC & FCPS",
-    description:
-      "Explore additional professional medical examination pathways.",
+    description: "Explore additional professional medical examination pathways.",
     icon: "🔬",
     tag: "Advanced Preparation"
   }
@@ -54,115 +49,260 @@ const faqs = [
   },
   {
     q: "How can I access courses?",
-    a: "Students will be able to register, choose a membership plan and access their enrolled courses through their dashboard."
+    a: "Students can register, choose a membership plan and access enrolled courses through their dashboard."
   },
   {
     q: "Can I access my courses on mobile?",
-    a: "The platform is being designed to work on mobile phones, tablets and desktop computers."
+    a: "RCA is designed to work on mobile phones, tablets and desktop computers."
   }
 ];
+
+function AnimatedHeart() {
+  return (
+    <div className="heart-stage">
+      <div className="heart-glow" />
+
+      <div className="heart-illustration">
+        <svg
+          viewBox="0 0 420 440"
+          role="img"
+          aria-label="Anatomical illustration of the human heart"
+          className="heart-svg"
+        >
+          <defs>
+            <linearGradient id="heartBody" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ff9297" />
+              <stop offset="45%" stopColor="#e83d58" />
+              <stop offset="100%" stopColor="#8e102d" />
+            </linearGradient>
+            <linearGradient id="heartLight" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ffb0a8" />
+              <stop offset="100%" stopColor="#d92c50" />
+            </linearGradient>
+            <linearGradient id="vessel" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ff9b92" />
+              <stop offset="100%" stopColor="#bd263d" />
+            </linearGradient>
+            <filter id="heartShadow">
+              <feGaussianBlur stdDeviation="7" />
+            </filter>
+          </defs>
+
+          {/* Heart shadow */}
+          <ellipse
+            cx="210"
+            cy="380"
+            rx="105"
+            ry="17"
+            fill="#000"
+            opacity=".24"
+            filter="url(#heartShadow)"
+          />
+
+          {/* Aorta */}
+          <path
+            d="M205 125 C184 75 189 31 221 22 C252 14 270 42 261 72
+               C256 88 241 98 230 109"
+            fill="none"
+            stroke="#9e1935"
+            strokeWidth="30"
+            strokeLinecap="round"
+          />
+          <path
+            d="M205 125 C184 75 189 31 221 22 C252 14 270 42 261 72"
+            fill="none"
+            stroke="url(#vessel)"
+            strokeWidth="20"
+            strokeLinecap="round"
+          />
+
+          {/* Aorta branches */}
+          <path d="M203 57 C174 37 165 21 169 7" fill="none"
+            stroke="#e94d60" strokeWidth="13" strokeLinecap="round" />
+          <path d="M225 43 C225 20 235 12 248 5" fill="none"
+            stroke="#ed6370" strokeWidth="12" strokeLinecap="round" />
+          <path d="M245 56 C272 36 285 39 295 26" fill="none"
+            stroke="#bd263d" strokeWidth="13" strokeLinecap="round" />
+
+          {/* Pulmonary artery */}
+          <path
+            d="M180 135 C155 95 119 90 101 111 C85 130 99 157 124 160
+               L174 170"
+            fill="none"
+            stroke="#ed6577"
+            strokeWidth="25"
+            strokeLinecap="round"
+          />
+
+          {/* Main heart body */}
+          <path
+            d="M207 134
+               C177 105 130 116 111 153
+               C79 215 118 286 192 355
+               C204 368 214 379 221 386
+               C246 352 306 292 326 226
+               C349 156 304 117 261 122
+               C237 124 222 139 207 158 Z"
+            fill="url(#heartBody)"
+            stroke="#ff8992"
+            strokeWidth="5"
+          />
+
+          {/* Right atrium */}
+          <path
+            d="M130 160 C112 181 119 220 151 230
+               C169 235 183 219 185 194
+               C184 166 154 145 130 160Z"
+            fill="#f77b84"
+            stroke="#a51b37"
+            strokeWidth="4"
+          />
+
+          {/* Left atrium */}
+          <path
+            d="M222 151 C245 128 285 137 294 166
+               C302 192 276 211 248 205
+               C229 201 215 177 222 151Z"
+            fill="#ff9b99"
+            stroke="#a51b37"
+            strokeWidth="4"
+          />
+
+          {/* Right ventricle */}
+          <path
+            d="M147 231 C161 215 185 218 200 235
+               C215 253 207 312 190 348
+               C165 321 133 281 135 254
+               C135 244 139 236 147 231Z"
+            fill="#d82e4d"
+            stroke="#a51b37"
+            strokeWidth="4"
+          />
+
+          {/* Left ventricle */}
+          <path
+            d="M205 231 C226 204 267 210 283 236
+               C301 267 263 329 221 377
+               C208 348 195 293 198 260
+               C199 248 201 238 205 231Z"
+            fill="url(#heartLight)"
+            stroke="#a51b37"
+            strokeWidth="4"
+          />
+
+          {/* Heart septum */}
+          <path
+            d="M205 164 C196 207 196 257 214 348"
+            fill="none"
+            stroke="#8e1833"
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
+
+          {/* Coronary artery details */}
+          <path
+            d="M132 205 C155 193 166 203 174 225
+               M174 225 C161 244 163 260 174 276
+               M254 208 C269 224 265 243 252 256"
+            fill="none"
+            stroke="#ffb0a8"
+            strokeWidth="6"
+            strokeLinecap="round"
+          />
+
+          {/* Highlight */}
+          <path
+            d="M125 177 C137 153 157 153 169 166"
+            fill="none"
+            stroke="#ffd0c8"
+            strokeWidth="7"
+            strokeLinecap="round"
+            opacity=".8"
+          />
+        </svg>
+      </div>
+
+      <span className="heart-label label-aorta">
+        <i /> Aorta
+      </span>
+      <span className="heart-label label-atria">
+        <i /> Left atrium
+      </span>
+      <span className="heart-label label-right">
+        <i /> Right ventricle
+      </span>
+      <span className="heart-label label-left">
+        <i /> Left ventricle
+      </span>
+      <span className="heart-label label-pulmonary">
+        <i /> Pulmonary artery
+      </span>
+
+      <div className="heart-caption">
+        <span className="eyebrow">ANATOMY IN MOTION</span>
+        <h2>The Science of the Human Heart</h2>
+        <p>Understand the structures that keep life moving.</p>
+        <span className="heart-caption-bottom">
+          LEARN · PRACTICE · EXCEL
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
     <main>
       {/* NAVIGATION */}
-      <header style={{
-        background: "#101d36",
-        padding: "15px 0"
-      }}>
-        <nav className="container" style={{
-          background: "white",
-          borderRadius: "14px",
-          padding: "13px 20px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "15px"
-        }}>
-          <a href="/" style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            color: "#101d36",
-            fontWeight: 900,
-            fontSize: "20px"
-          }}>
-            <img
-              src="/rcalogo.png"
-              alt="RCA Logo"
-              style={{
-                width: "42px",
-                height: "42px",
-                objectFit: "contain"
-              }}
-            />
-            RCA
+      <header className="site-header">
+        <nav className="container main-nav">
+          <a href="/" className="brand">
+            <img src="/rcalogo.png" alt="Rose Coaching Academy logo" />
+            <span>RCA</span>
           </a>
 
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "18px",
-            flexWrap: "wrap"
-          }}>
+          <details className="mobile-menu">
+            <summary aria-label="Open navigation menu">
+              <span />
+              <span />
+              <span />
+            </summary>
+            <div className="mobile-menu-panel">
+              <a href="/">Home</a>
+              <a href="#courses">Courses</a>
+              <a href="#membership">Membership</a>
+              <a href="#demo">Demo</a>
+              <a href="/login">Login</a>
+              <a href="/signup" className="mobile-signup">Signup</a>
+            </div>
+          </details>
+
+          <div className="desktop-links">
             <a className="nav-link" href="/">Home</a>
             <a className="nav-link" href="#courses">Courses</a>
             <a className="nav-link" href="#membership">Membership</a>
             <a className="nav-link" href="#demo">Demo</a>
             <a className="nav-link" href="/login">Login</a>
-            <a className="primary-btn" href="/signup">
-              Signup
-            </a>
+            <a className="primary-btn nav-signup" href="/signup">Signup</a>
           </div>
         </nav>
       </header>
 
       {/* HERO */}
-      <section style={{
-        background: "linear-gradient(120deg,#101d36,#1b3154)",
-        color: "white",
-        padding: "85px 0"
-      }}>
-        <div className="container" style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-          alignItems: "center",
-          gap: "45px"
-        }}>
-          <div>
-            <span className="eyebrow">
-              ROSE COACHING ACADEMY
-            </span>
-
-            <h1 style={{
-              fontSize: "clamp(38px,6vw,62px)",
-              lineHeight: 1.12,
-              margin: "20px 0"
-            }}>
-              Start Your Medical Journey With{" "}
-              <span style={{color:"#f06b7e"}}>
-                RCA
-              </span>
+      <section className="hero">
+        <div className="container hero-grid">
+          <div className="hero-copy">
+            <span className="eyebrow">ROSE COACHING ACADEMY</span>
+            <h1>
+              Start Your Medical Journey With <span>RCA</span>
             </h1>
-
-            <p style={{
-              color: "#d5dbea",
-              fontSize: "17px",
-              lineHeight: 1.8,
-              maxWidth: "540px"
-            }}>
+            <p className="hero-description">
               Learn with purpose. Prepare with confidence.
               Build the knowledge and skills to take your
               medical career further.
             </p>
 
-            <div style={{
-              display: "flex",
-              gap: "14px",
-              flexWrap: "wrap",
-              marginTop: "30px"
-            }}>
+            <div className="hero-actions">
               <a className="primary-btn" href="#membership">
                 Get Started →
               </a>
@@ -171,46 +311,12 @@ export default function Home() {
               </a>
             </div>
 
-            <p style={{
-              color: "#b8c5da",
-              fontSize: "13px",
-              marginTop: "25px"
-            }}>
+            <p className="hero-note">
               Medical Education · Exam Preparation · Professional Growth
             </p>
           </div>
 
-          <div style={{
-            minHeight: "320px",
-            border: "1px solid #52627e",
-            borderRadius: "25px",
-            background: "rgba(255,255,255,.06)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "30px",
-            textAlign: "center"
-          }}>
-            <div style={{fontSize:"105px"}}>🫀</div>
-            <h2 style={{fontSize:"25px",margin:"10px 0"}}>
-              The Science of Medicine
-            </h2>
-            <p style={{
-              color:"#c5d0e1",
-              lineHeight:1.7
-            }}>
-              Explore the knowledge behind every heartbeat.
-            </p>
-            <span style={{
-              color:"#f06b7e",
-              fontWeight:700,
-              fontSize:"12px",
-              letterSpacing:"2px"
-            }}>
-              LEARN · PRACTICE · EXCEL
-            </span>
-          </div>
+          <AnimatedHeart />
         </div>
       </section>
 
@@ -226,40 +332,14 @@ export default function Home() {
             </p>
           </div>
 
-          <div style={{
-            display:"grid",
-            gridTemplateColumns:"repeat(auto-fit,minmax(245px,1fr))",
-            gap:"22px"
-          }}>
+          <div className="course-grid">
             {courses.map((course) => (
               <article className="course-card" key={course.title}>
-                <div style={{fontSize:"35px"}}>
-                  {course.icon}
-                </div>
-                <p className="eyebrow" style={{
-                  fontSize:"10px",
-                  marginTop:"20px"
-                }}>
-                  {course.tag}
-                </p>
-                <h3 style={{
-                  color:"#101d36",
-                  fontSize:"21px"
-                }}>
-                  {course.title}
-                </h3>
-                <p style={{
-                  color:"#697386",
-                  lineHeight:1.7,
-                  fontSize:"14px"
-                }}>
-                  {course.description}
-                </p>
-                <a href="#membership" style={{
-                  color:"#bd263d",
-                  fontWeight:700,
-                  fontSize:"14px"
-                }}>
+                <div className="course-icon">{course.icon}</div>
+                <p className="eyebrow course-tag">{course.tag}</p>
+                <h3>{course.title}</h3>
+                <p className="course-description">{course.description}</p>
+                <a href="#membership" className="course-link">
                   Explore Program →
                 </a>
               </article>
@@ -269,8 +349,7 @@ export default function Home() {
       </section>
 
       {/* MEMBERSHIP */}
-      <section id="membership" className="section"
-        style={{background:"#f8f7f4"}}>
+      <section id="membership" className="section section-cream">
         <div className="container">
           <div className="section-heading">
             <span className="eyebrow">MEMBERSHIP</span>
@@ -303,9 +382,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
-      <section className="section"
-        style={{background:"#f8f7f4"}}>
+      {/* STUDENT COMMUNITY */}
+      <section className="section section-cream">
         <div className="container">
           <div className="section-heading">
             <span className="eyebrow">STUDENT COMMUNITY</span>
@@ -315,18 +393,9 @@ export default function Home() {
               medical education and professional development.
             </p>
           </div>
-          <div style={{
-            background:"white",
-            borderRadius:"16px",
-            padding:"30px",
-            textAlign:"center",
-            maxWidth:"700px",
-            margin:"auto"
-          }}>
-            <h3 style={{color:"#101d36"}}>
-              Your Success Story Starts Here
-            </h3>
-            <p style={{color:"#697386",lineHeight:1.8}}>
+          <div className="community-card">
+            <h3>Your Success Story Starts Here</h3>
+            <p>
               Student testimonials will appear here as RCA
               welcomes its first learners.
             </p>
@@ -336,7 +405,7 @@ export default function Home() {
 
       {/* FAQ */}
       <section className="section">
-        <div className="container" style={{maxWidth:"800px"}}>
+        <div className="container faq-container">
           <div className="section-heading">
             <span className="eyebrow">FAQ</span>
             <h2>Frequently Asked Questions</h2>
@@ -352,65 +421,51 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{
-        background:"#101d36",
-        color:"white",
-        padding:"55px 0 20px"
-      }}>
+      <footer className="site-footer">
         <div className="container">
-          <div style={{
-            display:"grid",
-            gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",
-            gap:"35px"
-          }}>
-            <div>
-              <h2>RCA</h2>
-              <p style={{color:"#bdc8d9",lineHeight:1.8}}>
-                Rose Coaching Academy
-              </p>
-              <p style={{color:"#bdc8d9",lineHeight:1.8}}>
-                Supporting your medical education and
-                professional journey.
+          <div className="footer-grid">
+            <div className="footer-brand">
+              <a href="/" className="footer-logo">
+                <img src="/rcalogo.png" alt="Rose Coaching Academy logo" />
+                <span>Rose Coaching Academy</span>
+              </a>
+              <p>
+                Empowering medical students through focused
+                education, exam preparation and professional growth.
               </p>
             </div>
 
             <div>
-              <h3>Quick Links</h3>
-              <p><a href="#courses">Courses</a></p>
-              <p><a href="#membership">Membership</a></p>
-              <p><a href="#demo">Demo</a></p>
+              <h3>Explore RCA</h3>
+              <a href="/">Home</a>
+              <a href="#courses">Our Courses</a>
+              <a href="#membership">Membership</a>
+              <a href="#demo">Demo</a>
             </div>
 
             <div>
               <h3>Student Account</h3>
-              <p><a href="/login">Login</a></p>
-              <p><a href="/signup">Register</a></p>
+              <a href="/login">Student Login</a>
+              <a href="/signup">Create Account</a>
             </div>
 
             <div>
-              <h3>Contact</h3>
-              <p style={{color:"#bdc8d9"}}>
-                Contact information will be added here.
-              </p>
+              <h3>Our Academy</h3>
+              <p>Rose Coaching Academy</p>
+              <p>Medical Education · Exam Preparation</p>
             </div>
           </div>
 
-          <hr style={{
-            border:"0",
-            borderTop:"1px solid #34435b",
-            margin:"35px 0 20px"
-          }}/>
-
-          <p style={{
-            textAlign:"center",
-            color:"#bdc8d9",
-            fontSize:"13px"
-          }}>
-            © {new Date().getFullYear()} Rose Coaching Academy.
-            All rights reserved.
-          </p>
+          <div className="footer-bottom">
+            <p>
+              © {new Date().getFullYear()} Rose Coaching Academy (RCA).
+              All rights reserved.
+            </p>
+            <span>Learn · Practice · Excel</span>
+          </div>
         </div>
       </footer>
     </main>
   );
-      }
+            }
+            
