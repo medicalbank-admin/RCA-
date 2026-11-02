@@ -49,6 +49,7 @@ type DemoExam = {
   title: string;
   description: string;
   pathway: string;
+  duration?: number;
   durationMinutes: number;
   totalMarks: number;
   isPublished: boolean;
