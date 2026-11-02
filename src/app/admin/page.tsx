@@ -1,17 +1,16 @@
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
   onAuthStateChanged,
   signOut,
-  User,
+  User
 } from "firebase/auth";
 import {
   collection,
   doc,
   getDoc,
-  getDocs,
+  getDocs
 } from "firebase/firestore";
 import {
   Search,
@@ -29,6 +28,7 @@ import {
   Eye,
   ShieldCheck,
   UserCircle,
+  ChevronRight
 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 
@@ -46,9 +46,6 @@ type Student = {
   graduationYear?: string | null;
   courseToStudy?: string;
   accountStatus?: string;
-  createdAt?: {
-    seconds?: number;
-  };
 };
 
 type AdminProfile = {
@@ -56,14 +53,20 @@ type AdminProfile = {
   role?: string;
 };
 
-const navigation = [
+type NavigationItem = {
+  label: string;
+  icon: React.ElementType;
+  route?: string;
+};
+
+const navigation: NavigationItem[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Manage Students", icon: Users },
-  { label: "Memberships", icon: CreditCard },
-  { label: "Courses", icon: BookOpen },
-  { label: "Exams", icon: ClipboardList },
-  { label: "Demo Content", icon: GraduationCap },
-  { label: "Finances & Invoices", icon: FileText },
+  { label: "Memberships", icon: CreditCard, route: "/admin/memberships" },
+  { label: "Courses", icon: BookOpen, route: "/admin/courses" },
+  { label: "Exams", icon: ClipboardList, route: "/admin/exams" },
+  { label: "Demo Content", icon: GraduationCap, route: "/admin/demo" },
+  { label: "Finances & Invoices", icon: FileText, route: "/admin/finances" }
 ];
 
 export default function AdminDashboard() {
@@ -114,12 +117,11 @@ export default function AdminDashboard() {
 
         setUser(currentUser);
         setAdmin(profile);
-
         await loadStudents();
       } catch (err) {
         console.error("Admin authentication error:", err);
         setError(
-          "Unable to verify admin access or load student records. Please check your Firestore security rules."
+          "Unable to verify admin access or load student records. Check your Firestore security rules."
         );
       } finally {
         setLoading(false);
@@ -136,21 +138,32 @@ export default function AdminDashboard() {
     try {
       const snapshot = await getDocs(collection(db, "users"));
 
-      const records = snapshot.docs
-        .map((studentDoc) => ({
-          ...studentDoc.data(),
-          uid: studentDoc.id,
-        })) as Student[];
+      const records = snapshot.docs.map((studentDoc) => ({
+        ...studentDoc.data(),
+        uid: studentDoc.id
+      })) as Student[];
 
       setStudents(records);
     } catch (err) {
       console.error("Student loading error:", err);
       setError(
-        "Student records could not be loaded. Your admin UID must be authorized in Firestore rules."
+        "Student records could not be loaded. Check that your admin UID is authorized in Firestore rules."
       );
     } finally {
       setRefreshing(false);
     }
+  }
+
+  function navigateTo(item: NavigationItem) {
+    setMobileMenuOpen(false);
+    setSelectedStudent(null);
+
+    if (item.route) {
+      window.location.href = item.route;
+      return;
+    }
+
+    setActiveSection(item.label);
   }
 
   async function handleLogout() {
@@ -169,7 +182,7 @@ export default function AdminDashboard() {
         student.email,
         student.nationalId,
         student.courseToStudy,
-        student.whatsapp,
+        student.whatsapp
       ]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(term))
@@ -177,8 +190,7 @@ export default function AdminDashboard() {
   }, [students, search]);
 
   const pendingStudents = students.filter(
-    (student) =>
-      student.accountStatus === "pending_verification"
+    (student) => student.accountStatus === "pending_verification"
   ).length;
 
   const activeStudents = students.filter(
@@ -202,7 +214,6 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-800">
-      {/* MOBILE HEADER */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-white px-4 py-3 shadow-sm lg:hidden">
         <div className="flex items-center gap-2">
           <img
@@ -211,9 +222,7 @@ export default function AdminDashboard() {
             className="h-10 w-10 object-contain"
           />
           <div>
-            <p className="font-bold text-red-700">
-              RCA Admin
-            </p>
+            <p className="font-bold text-red-700">RCA Admin</p>
             <p className="text-xs text-gray-500">
               Administration Portal
             </p>
@@ -230,7 +239,6 @@ export default function AdminDashboard() {
       </header>
 
       <div className="flex min-h-screen">
-        {/* SIDEBAR */}
         <aside
           className={`${
             mobileMenuOpen ? "block" : "hidden"
@@ -258,31 +266,32 @@ export default function AdminDashboard() {
             <nav className="space-y-1">
               {navigation.map((item) => {
                 const Icon = item.icon;
-                const active = activeSection === item.label;
+                const active =
+                  activeSection === item.label &&
+                  !item.route;
 
                 return (
                   <button
                     key={item.label}
-                    onClick={() => {
-                      setActiveSection(item.label);
-                      setSelectedStudent(null);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${
+                    onClick={() => navigateTo(item)}
+                    className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${
                       active
                         ? "bg-red-700 text-white"
                         : "text-slate-300 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    <Icon size={19} />
-                    {item.label}
+                    <span className="flex items-center gap-3">
+                      <Icon size={19} />
+                      {item.label}
+                    </span>
+                    {item.route && <ChevronRight size={16} />}
                   </button>
                 );
               })}
             </nav>
           </div>
 
-          <div className="absolute bottom-0 w-full border-t border-white/10 p-4">
+          <div className="border-t border-white/10 p-4 lg:absolute lg:bottom-0 lg:w-full">
             <div className="mb-4 flex items-center gap-3">
               <UserCircle size={35} className="text-slate-300" />
               <div className="min-w-0">
@@ -305,7 +314,6 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        {/* MOBILE MENU BACKDROP */}
         {mobileMenuOpen && (
           <button
             aria-label="Close navigation"
@@ -314,7 +322,6 @@ export default function AdminDashboard() {
           />
         )}
 
-        {/* MAIN CONTENT */}
         <section className="min-w-0 flex-1">
           <header className="hidden items-center justify-between border-b bg-white px-8 py-5 lg:flex">
             <div>
@@ -346,8 +353,7 @@ export default function AdminDashboard() {
                 Manage your academy, students and learning programs.
               </p>
             </div>
-
-            {error && (
+                        {error && (
               <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
                 <p className="font-bold">Attention required</p>
                 <p className="mt-1">{error}</p>
@@ -396,7 +402,9 @@ export default function AdminDashboard() {
                       </div>
 
                       <button
-                        onClick={() => setActiveSection("Manage Students")}
+                        onClick={() =>
+                          setActiveSection("Manage Students")
+                        }
                         className="text-sm font-bold text-red-700"
                       >
                         View all
@@ -441,30 +449,31 @@ export default function AdminDashboard() {
                     </h3>
 
                     <div className="mt-5 space-y-3">
-                      {[
-                        ["Manage Students", Users],
-                        ["Memberships", CreditCard],
-                        ["Courses", BookOpen],
-                        ["Exams", ClipboardList],
-                        ["Finances & Invoices", FileText],
-                      ].map(([label, Icon]) => {
-                        const ActionIcon = Icon as typeof Users;
-                        const name = label as string;
+                      {navigation
+                        .filter((item) => item.label !== "Overview")
+                        .map((item) => {
+                          const Icon = item.icon;
 
-                        return (
-                          <button
-                            key={name}
-                            onClick={() => setActiveSection(name)}
-                            className="flex w-full items-center gap-3 rounded-xl border p-3 text-left text-sm font-semibold hover:border-red-300 hover:bg-red-50"
-                          >
-                            <ActionIcon
-                              size={18}
-                              className="text-red-700"
-                            />
-                            {name}
-                          </button>
-                        );
-                      })}
+                          return (
+                            <button
+                              key={item.label}
+                              onClick={() => navigateTo(item)}
+                              className="flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left text-sm font-semibold hover:border-red-300 hover:bg-red-50"
+                            >
+                              <span className="flex items-center gap-3">
+                                <Icon
+                                  size={18}
+                                  className="text-red-700"
+                                />
+                                {item.label}
+                              </span>
+                              <ChevronRight
+                                size={16}
+                                className="text-slate-400"
+                              />
+                            </button>
+                          );
+                        })}
                     </div>
                   </div>
                 </div>
@@ -513,7 +522,8 @@ export default function AdminDashboard() {
                   </div>
 
                   <p className="mt-3 text-xs text-gray-500">
-                    Showing {filteredStudents.length} of {students.length} students
+                    Showing {filteredStudents.length} of{" "}
+                    {students.length} students
                   </p>
                 </div>
 
@@ -531,7 +541,10 @@ export default function AdminDashboard() {
 
                     <tbody className="divide-y">
                       {filteredStudents.map((student) => (
-                        <tr key={student.uid} className="hover:bg-slate-50">
+                        <tr
+                          key={student.uid}
+                          className="hover:bg-slate-50"
+                        >
                           <td className="px-5 py-4">
                             <p className="font-bold">
                               {student.fullName || "Unnamed"}
@@ -550,12 +563,16 @@ export default function AdminDashboard() {
                           </td>
 
                           <td className="px-5 py-4">
-                            <StatusBadge status={student.accountStatus} />
+                            <StatusBadge
+                              status={student.accountStatus}
+                            />
                           </td>
 
                           <td className="px-5 py-4">
                             <button
-                              onClick={() => setSelectedStudent(student)}
+                              onClick={() =>
+                                setSelectedStudent(student)
+                              }
                               className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 font-bold text-red-700 hover:bg-red-100"
                             >
                               <Eye size={15} />
@@ -580,29 +597,10 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
-
-            {activeSection !== "Overview" &&
-              activeSection !== "Manage Students" && (
-                <div className="rounded-2xl border bg-white p-8 text-center shadow-sm">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-700">
-                    <BookOpen size={30} />
-                  </div>
-
-                  <h3 className="mt-5 text-xl font-bold">
-                    {activeSection}
-                  </h3>
-
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-                    This section is scheduled for the next development stage.
-                    We will connect it to Firebase and build its management
-                    features one section at a time.
-                  </p>
-                </div>
-              )}
           </div>
         </section>
       </div>
-      {/* STUDENT PROFILE MODAL */}
+
       {selectedStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
           <div className="my-auto w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
@@ -624,19 +622,57 @@ export default function AdminDashboard() {
                 <X size={20} />
               </button>
             </div>
-                <div className="grid gap-5 p-5 sm:grid-cols-2">
-              <ProfileField label="Full Name" value={selectedStudent.fullName} />
-              <ProfileField label="Father Name" value={selectedStudent.fatherName} />
-              <ProfileField label="Email" value={selectedStudent.email} />
-              <ProfileField label="National ID / Passport" value={selectedStudent.nationalId} />
-              <ProfileField label="WhatsApp" value={selectedStudent.whatsapp} />
-              <ProfileField label="Country of Residency" value={selectedStudent.countryResidency} />
-              <ProfileField label="Country of Study" value={selectedStudent.countryStudy} />
-              <ProfileField label="Medical Program" value={selectedStudent.medicalProgram} />
-              <ProfileField label="Medical Year" value={selectedStudent.medicalYear} />
-              <ProfileField label="Graduation Year" value={selectedStudent.graduationYear} />
-              <ProfileField label="Selected Pathway" value={selectedStudent.courseToStudy} />
-              <ProfileField label="Account Status" value={selectedStudent.accountStatus} />
+
+            <div className="grid gap-5 p-5 sm:grid-cols-2">
+              <ProfileField
+                label="Full Name"
+                value={selectedStudent.fullName}
+              />
+              <ProfileField
+                label="Father Name"
+                value={selectedStudent.fatherName}
+              />
+              <ProfileField
+                label="Email"
+                value={selectedStudent.email}
+              />
+              <ProfileField
+                label="National ID / Passport"
+                value={selectedStudent.nationalId}
+              />
+              <ProfileField
+                label="WhatsApp"
+                value={selectedStudent.whatsapp}
+              />
+              <ProfileField
+                label="Country of Residency"
+                value={selectedStudent.countryResidency}
+              />
+              <ProfileField
+                label="Country of Study"
+                value={selectedStudent.countryStudy}
+              />
+              <ProfileField
+                label="Medical Program"
+                value={selectedStudent.medicalProgram}
+              />
+              <ProfileField
+                label="Medical Year"
+                value={selectedStudent.medicalYear}
+              />
+              <ProfileField
+                label="Graduation Year"
+                value={selectedStudent.graduationYear}
+              />
+              <ProfileField
+                label="Selected Pathway"
+                value={selectedStudent.courseToStudy}
+              />
+              <ProfileField
+                label="Account Status"
+                value={selectedStudent.accountStatus}
+              />
+
               <div className="sm:col-span-2">
                 <p className="text-xs font-semibold uppercase text-gray-400">
                   Firebase User ID
@@ -646,7 +682,8 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-             <div className="flex justify-end border-t p-5">
+
+            <div className="flex justify-end border-t p-5">
               <button
                 onClick={() => setSelectedStudent(null)}
                 className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-bold text-white"
@@ -665,7 +702,7 @@ function StatCard({
   title,
   value,
   icon,
-  color,
+  color
 }: {
   title: string;
   value: string | number;
@@ -676,18 +713,20 @@ function StatCard({
     blue: "bg-blue-50 text-blue-700",
     green: "bg-green-50 text-green-700",
     amber: "bg-amber-50 text-amber-700",
-    purple: "bg-purple-50 text-purple-700",
+    purple: "bg-purple-50 text-purple-700"
   };
 
   return (
     <div className="rounded-2xl border bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-gray-500">{title}</p>
+        <p className="text-sm font-semibold text-gray-500">
+          {title}
+        </p>
         <div className={`rounded-xl p-3 ${colors[color]}`}>
           {icon}
         </div>
       </div>
-         <p className="mt-4 text-3xl font-extrabold">{value}</p>
+      <p className="mt-4 text-3xl font-extrabold">{value}</p>
     </div>
   );
 }
@@ -713,7 +752,7 @@ function StatusBadge({ status }: { status?: string }) {
 
 function ProfileField({
   label,
-  value,
+  value
 }: {
   label: string;
   value?: string | null;
@@ -726,6 +765,6 @@ function ProfileField({
       <p className="mt-1 break-words text-sm font-semibold text-slate-800">
         {value || "Not provided"}
       </p>
-        </div>
+    </div>
   );
-}
+                            }
