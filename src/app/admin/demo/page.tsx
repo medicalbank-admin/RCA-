@@ -39,6 +39,7 @@ type DemoVideo = {
   description: string;
   videoUrl: string;
   pathway: string;
+  duration?: string;
   isPublished: boolean;
   createdAt?: unknown;
 };
