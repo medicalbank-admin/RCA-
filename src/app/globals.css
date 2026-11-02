@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+:root {
+  --navy: #101d36;
+  --navy-light: #1b2d4d;
+  --red: #bd263d;
+  --cream: #f8f7f4;
+  --foreground: #172238;
+  --muted: #697386;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: white;
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+.container {
+  width: min(1160px, 90%);
+  margin-inline: auto;
+}
+
+.section {
+  padding: 85px 0;
+}
+
+.section-heading {
+  max-width: 650px;
+  margin: 0 auto 42px;
+  text-align: center;
+}
+
+.section-heading h2 {
+  color: var(--navy);
+  font-size: clamp(28px, 4vw, 40px);
+  margin: 12px 0;
+}
+
+.section-heading p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.eyebrow {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  border-radius: 8px;
+  background: var(--red);
+  color: white;
+  font-weight: 700;
+  transition: .2s;
+}
+
+.primary-btn:hover {
+  background: #9f1d32;
+  transform: translateY(-2px);
+}
+
+.outline-btn {
+  display: inline-flex;
+  padding: 13px 23px;
+  border: 1px solid rgba(255,255,255,.65);
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+}
+
+.nav-link {
+  color: #26344b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.nav-link:hover {
+  color: var(--red);
+}
+
+.course-card {
+  padding: 26px;
+  border: 1px solid #e9eaf0;
+  border-radius: 15px;
+  background: white;
+  transition: .25s;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(16,29,54,.09);
+}
+
+.faq-item {
+  padding: 22px 0;
+  border-bottom: 1px solid #e6e8ed;
+}
+
+.faq-item summary {
+  color: var(--navy);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.faq-item p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 700px) {
+  .section {
+    padding: 60px 0;
+  }
+}
