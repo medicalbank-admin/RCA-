@@ -14,6 +14,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  setDoc,
   orderBy,
   query,
   serverTimestamp
