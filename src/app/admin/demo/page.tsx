@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { 
+import {
   addDoc,
   collection,
   deleteDoc,
   doc,
   getDocs,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  writeBatch
 } from "firebase/firestore";
 import {
   ArrowLeft,
@@ -65,11 +66,25 @@ type DemoQuestion = {
 };
 
 const pathways = [
-  "MBBS Year 1", "MBBS Year 2", "MBBS Year 3",
-  "MBBS Year 4", "MBBS Year 5", "MBBS Year 6",
-  "MD Year 1", "MD Year 2", "MD Year 3",
-  "MD Year 4", "MD Year 5", "MD Year 6",
-  "NRE", "USMLE", "PLAB", "SMLE", "DHA", "AMC", "FCPS"
+  "MBBS Year 1",
+  "MBBS Year 2",
+  "MBBS Year 3",
+  "MBBS Year 4",
+  "MBBS Year 5",
+  "MBBS Year 6",
+  "MD Year 1",
+  "MD Year 2",
+  "MD Year 3",
+  "MD Year 4",
+  "MD Year 5",
+  "MD Year 6",
+  "NRE",
+  "USMLE",
+  "PLAB",
+  "SMLE",
+  "DHA",
+  "AMC",
+  "FCPS"
 ];
 
 const demoImportExample =
@@ -111,6 +126,7 @@ export default function DemoManagementPage() {
 
   // Question bank state
   const [selectedExam, setSelectedExam] = useState<DemoExam | null>(null);
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [editingQuestion, setEditingQuestion] =
     useState<DemoQuestion | null>(null);
@@ -128,6 +144,7 @@ export default function DemoManagementPage() {
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
 
+  // Authentication and administrator verification
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
@@ -144,10 +161,15 @@ export default function DemoManagementPage() {
           return;
         }
 
-        const { getDoc } = await import("firebase/firestore");
-        const profile = await getDoc(doc(db, "users", currentUser.uid));
+        const profileSnapshot = await getDocs(
+          collection(db, "users")
+        );
 
-        if (!profile.exists() || profile.data().role !== "admin") {
+        const profile = profileSnapshot.docs.find(
+          (item) => item.id === currentUser.uid
+        );
+
+        if (!profile || profile.data().role !== "admin") {
           window.location.replace("/dashboard");
           return;
         }
@@ -165,6 +187,7 @@ export default function DemoManagementPage() {
     return () => unsubscribe();
   }, []);
 
+  // Load all demo content
   async function loadData() {
     setRefreshing(true);
     setError("");
@@ -200,13 +223,14 @@ export default function DemoManagementPage() {
     } catch (err) {
       console.error(err);
       setError(
-        "Could not load demo content. Check the Firestore rules for demoContent, demoExams and demoQuestions."
+        "Could not load demo content. Check Firestore rules for demoContent, demoExams and demoQuestions."
       );
     } finally {
       setRefreshing(false);
     }
   }
 
+  // Video form helpers
   function resetVideoForm() {
     setVideoTitle("");
     setVideoDescription("");
@@ -265,6 +289,7 @@ export default function DemoManagementPage() {
           doc(db, "demoContent", editingVideo.id),
           videoData
         );
+
         setSuccess("Demo video updated successfully.");
       } else {
         await addDoc(collection(db, "demoContent"), {
@@ -272,6 +297,7 @@ export default function DemoManagementPage() {
           isPublished: false,
           createdAt: serverTimestamp()
         });
+
         setSuccess("Demo video added as unpublished.");
       }
 
@@ -283,8 +309,8 @@ export default function DemoManagementPage() {
     } finally {
       setSaving(false);
     }
-  }
-
+    }
+    // Publish or unpublish a demo video
   async function toggleVideoPublished(video: DemoVideo) {
     setError("");
     setSuccess("");
@@ -308,8 +334,11 @@ export default function DemoManagementPage() {
     }
   }
 
+  // Delete a demo video
   async function removeVideo(video: DemoVideo) {
-    if (!window.confirm(`Delete demo video "${video.title}"?`)) return;
+    if (!window.confirm(`Delete demo video "${video.title}"?`)) {
+      return;
+    }
 
     try {
       await deleteDoc(doc(db, "demoContent", video.id));
@@ -319,8 +348,10 @@ export default function DemoManagementPage() {
       console.error(err);
       setError("Could not delete demo video.");
     }
-}
-    function resetExamForm() {
+  }
+
+  // Demo exam form helpers
+  function resetExamForm() {
     setExamTitle("");
     setExamDescription("");
     setExamPathway(pathways[0]);
@@ -340,6 +371,7 @@ export default function DemoManagementPage() {
     setShowExamForm(true);
   }
 
+  // Create or update a demo exam
   async function saveExam(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -376,7 +408,11 @@ export default function DemoManagementPage() {
       };
 
       if (editingExam) {
-        await updateDoc(doc(db, "demoExams", editingExam.id), examData);
+        await updateDoc(
+          doc(db, "demoExams", editingExam.id),
+          examData
+        );
+
         setSuccess("Demo exam updated successfully.");
       } else {
         await addDoc(collection(db, "demoExams"), {
@@ -384,6 +420,7 @@ export default function DemoManagementPage() {
           isPublished: false,
           createdAt: serverTimestamp()
         });
+
         setSuccess("Demo exam created as unpublished.");
       }
 
@@ -397,6 +434,7 @@ export default function DemoManagementPage() {
     }
   }
 
+  // Publish or unpublish a demo exam
   async function toggleExamPublished(exam: DemoExam) {
     setError("");
     setSuccess("");
@@ -420,6 +458,7 @@ export default function DemoManagementPage() {
     }
   }
 
+  // Delete an exam and all its associated questions
   async function removeExam(exam: DemoExam) {
     const related = questions.filter(
       (question) => question.examId === exam.id
@@ -429,10 +468,11 @@ export default function DemoManagementPage() {
       !window.confirm(
         `Delete "${exam.title}" and its ${related.length} question(s)?`
       )
-    ) return;
+    ) {
+      return;
+    }
 
     try {
-      const { writeBatch } = await import("firebase/firestore");
       const batch = writeBatch(db);
 
       batch.delete(doc(db, "demoExams", exam.id));
@@ -445,6 +485,7 @@ export default function DemoManagementPage() {
 
       if (selectedExam?.id === exam.id) {
         setSelectedExam(null);
+        setShowQuestionModal(false);
       }
 
       setSuccess("Demo exam and its questions deleted.");
@@ -454,7 +495,7 @@ export default function DemoManagementPage() {
       setError("Could not delete the demo exam.");
     }
   }
-
+    // Reset question form
   function resetQuestionForm() {
     setQuestionText("");
     setOptionA("");
@@ -468,6 +509,7 @@ export default function DemoManagementPage() {
     setShowQuestionForm(false);
   }
 
+  // Open form to edit a question
   function startEditQuestion(question: DemoQuestion) {
     setEditingQuestion(question);
     setQuestionText(question.question);
@@ -481,6 +523,7 @@ export default function DemoManagementPage() {
     setShowQuestionForm(true);
   }
 
+  // Add or update a question
   async function saveQuestion(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -528,73 +571,58 @@ export default function DemoManagementPage() {
           doc(db, "demoQuestions", editingQuestion.id),
           questionData
         );
-        setSuccess("Demo question updated.");
+
+        setSuccess("Question updated successfully.");
       } else {
         await addDoc(collection(db, "demoQuestions"), {
           ...questionData,
           order: questions.filter(
-            (item) => item.examId === selectedExam.id
+            (question) => question.examId === selectedExam.id
           ).length + 1,
           createdAt: serverTimestamp()
         });
-        setSuccess("Demo question added.");
+
+        setSuccess("Question added successfully.");
       }
 
       resetQuestionForm();
       await loadData();
     } catch (err) {
       console.error(err);
-      setError("Could not save the demo question.");
+      setError("Could not save the question.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function removeQuestion(question: DemoQuestion) {
-    if (!window.confirm("Delete this demo question permanently?")) return;
+  // Delete a question
+  async function removeQuestion(questionId: string) {
+    if (!window.confirm("Delete this question permanently?")) {
+      return;
+    }
 
     try {
-      await deleteDoc(doc(db, "demoQuestions", question.id));
-      setSuccess("Demo question deleted.");
+      await deleteDoc(doc(db, "demoQuestions", questionId));
+      setSuccess("Question deleted successfully.");
       await loadData();
     } catch (err) {
       console.error(err);
-      setError("Could not delete this demo question.");
+      setError("Could not delete the question.");
     }
   }
 
-  async function importQuestions(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!selectedExam) {
-      setError("Select a demo exam first.");
-      return;
-    }
-
-    const lines = importText
-      .split("\n")
+  // Parse bulk import lines
+  function parseImportQuestions(text: string) {
+    return text
+      .split(/\r?\n/)
       .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (lines.length === 0) {
-      setError("Paste at least one question.");
-      return;
-    }
-
-    if (lines.length > 400) {
-      setError("Import is limited to 400 questions at a time.");
-      return;
-    }
-
-    let parsed: Omit<DemoQuestion, "id">[];
-
-    try {
-      parsed = lines.map((line, index) => {
+      .filter(Boolean)
+      .map((line, index) => {
         const fields = line.split("|").map((field) => field.trim());
 
-        if (fields.length !== 7) {
+        if (fields.length < 6) {
           throw new Error(
-            `Line ${index + 1}: expected 7 fields separated by |.`
+            `Line ${index + 1}: Expected at least 6 fields separated by |.`
           );
         }
 
@@ -605,36 +633,62 @@ export default function DemoManagementPage() {
           c,
           d,
           answer,
-          explanationText
+          explanationText = ""
         ] = fields;
 
         const normalizedAnswer = answer.toUpperCase();
 
-        if (
-          !question || !a || !b || !c || !d ||
-          !["A", "B", "C", "D"].includes(normalizedAnswer)
-        ) {
+        if (!question || !a || !b || !c || !d) {
           throw new Error(
-            `Line ${index + 1}: fill all fields and use A, B, C or D as the answer.`
+            `Line ${index + 1}: Question and all four options are required.`
+          );
+        }
+
+        if (!["A", "B", "C", "D"].includes(normalizedAnswer)) {
+          throw new Error(
+            `Line ${index + 1}: Correct answer must be A, B, C or D.`
           );
         }
 
         return {
-          examId: selectedExam.id,
           question,
           options: [a, b, c, d],
           correctAnswer: normalizedAnswer,
           explanation: explanationText,
           marks: 1,
-          order:
-            questions.filter(
-              (item) => item.examId === selectedExam.id
-            ).length + index + 1
+          order: index + 1
         };
       });
+  }
+
+  // Import multiple questions into an exam
+  async function importQuestions() {
+    if (!selectedExam) {
+      setError("Select an exam before importing questions.");
+      return;
+    }
+
+    let parsedQuestions: ReturnType<typeof parseImportQuestions>;
+
+    try {
+      parsedQuestions = parseImportQuestions(importText);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Invalid import format."
+        err instanceof Error
+          ? err.message
+          : "The imported question format is invalid."
+      );
+      return;
+    }
+
+    if (parsedQuestions.length === 0) {
+      setError("Paste at least one question to import.");
+      return;
+    }
+
+    if (parsedQuestions.length > 450) {
+      setError(
+        "Please import no more than 450 questions at one time."
       );
       return;
     }
@@ -644,13 +698,14 @@ export default function DemoManagementPage() {
     setSuccess("");
 
     try {
-      const { writeBatch } = await import("firebase/firestore");
       const batch = writeBatch(db);
 
-      parsed.forEach((question) => {
-        const newQuestion = doc(collection(db, "demoQuestions"));
-        batch.set(newQuestion, {
+      parsedQuestions.forEach((question) => {
+        const questionRef = doc(collection(db, "demoQuestions"));
+
+        batch.set(questionRef, {
           ...question,
+          examId: selectedExam.id,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         });
@@ -660,21 +715,25 @@ export default function DemoManagementPage() {
 
       setImportText("");
       setShowImport(false);
-      setSuccess(`${parsed.length} demo question(s) imported.`);
+      setSuccess(
+        `${parsedQuestions.length} question(s) imported successfully.`
+      );
+
       await loadData();
     } catch (err) {
       console.error(err);
-      setError("Could not import demo questions.");
+      setError("Could not import questions. Please try again.");
     } finally {
       setSaving(false);
     }
   }
 
+  // Filter demo videos
   const filteredVideos = useMemo(() => {
     return videos.filter((video) => {
       const matchesSearch =
         video.title.toLowerCase().includes(search.toLowerCase()) ||
-        video.pathway.toLowerCase().includes(search.toLowerCase());
+        video.description.toLowerCase().includes(search.toLowerCase());
 
       const matchesPathway =
         pathwayFilter === "all" || video.pathway === pathwayFilter;
@@ -688,11 +747,12 @@ export default function DemoManagementPage() {
     });
   }, [videos, search, pathwayFilter, statusFilter]);
 
+  // Filter demo exams
   const filteredExams = useMemo(() => {
     return exams.filter((exam) => {
       const matchesSearch =
         exam.title.toLowerCase().includes(search.toLowerCase()) ||
-        exam.pathway.toLowerCase().includes(search.toLowerCase());
+        exam.description.toLowerCase().includes(search.toLowerCase());
 
       const matchesPathway =
         pathwayFilter === "all" || exam.pathway === pathwayFilter;
@@ -706,368 +766,297 @@ export default function DemoManagementPage() {
     });
   }, [exams, search, pathwayFilter, statusFilter]);
 
-  const selectedQuestions = selectedExam
-    ? questions
-        .filter((question) => question.examId === selectedExam.id)
-        .sort((a, b) => a.order - b.order)
-    : [];
+  // Statistics
+  const publishedVideos = videos.filter(
+    (video) => video.isPublished
+  ).length;
 
-  const publishedVideos = videos.filter((video) => video.isPublished).length;
-  const publishedExams = exams.filter((exam) => exam.isPublished).length;
-    const totalPublished =
-    publishedVideos + publishedExams;
+  const publishedExams = exams.filter(
+    (exam) => exam.isPublished
+  ).length;
 
-  if (loading) {
+  const totalQuestions = questions.length;
+
+  // Logout
+  async function handleLogout() {
+    await signOut(auth);
+    window.location.replace("/login");
+}
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-600 font-medium">
-          Checking administrator access...
-        </p>
-      </main>
-    );
-  }
-
-  if (!user) return null;
-
-  return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-slate-950 text-white">
+      {/* Top navigation */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+          <div>
             <Link
               href="/admin"
-              className="p-2 rounded-lg border border-slate-200 hover:bg-slate-100"
-              aria-label="Back to admin dashboard"
+              className="text-sm text-slate-400 hover:text-white"
             >
-              <ArrowLeft size={19} />
+              ← Back to Admin Dashboard
             </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold">
-                Demo Content Management
-              </h1>
-              <p className="text-sm text-slate-500">
-                Manage free videos and demo examinations
-              </p>
-            </div>
+            <h1 className="mt-1 text-xl font-bold">
+              Demo Content Management
+            </h1>
+            <p className="text-xs text-slate-400">
+              Rose Coaching Academy (RCA)
+            </p>
           </div>
 
           <button
-            onClick={() =>
-              signOut(auth).then(() => {
-                window.location.replace("/login");
-              })
-            }
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-sm font-semibold"
+            onClick={handleLogout}
+            className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/10"
           >
-            <LogOut size={17} />
             Logout
           </button>
         </div>
       </header>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-7">
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8">
+        {/* Page heading */}
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h2 className="text-2xl font-bold">Demo Library</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Manage free demo videos and practice exams for students.
+            </p>
+          </div>
+
+          <button
+            onClick={() => loadData()}
+            disabled={refreshing}
+            className="rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/10 disabled:opacity-50"
+          >
+            {refreshing ? "Refreshing..." : "Refresh Data"}
+          </button>
+        </div>
+
+        {/* Alerts */}
         {error && (
-          <div className="mb-5 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-5 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 text-sm">
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-300">
             {success}
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-          <SummaryCard
-            title="Total Videos"
-            value={videos.length}
-            icon={<Video size={22} />}
-          />
-          <SummaryCard
-            title="Published Videos"
-            value={publishedVideos}
-            icon={<Eye size={22} />}
-          />
-          <SummaryCard
-            title="Total Demo Exams"
-            value={exams.length}
-            icon={<ClipboardList size={22} />}
-          />
-          <SummaryCard
-            title="Published Content"
-            value={totalPublished}
-            icon={<CheckCircle2 size={22} />}
-          />
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-bold">Demo Library</h2>
-              <p className="text-sm text-slate-500">
-                Manage the free learning resources offered by RCA.
-              </p>
+        {/* Statistics */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">Demo Videos</span>
+              <FileText className="h-5 w-5 text-sky-400" />
             </div>
-
-            <button
-              onClick={() => loadData()}
-              disabled={refreshing}
-              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-semibold disabled:opacity-50"
-            >
-              <RefreshCw
-                size={16}
-                className={refreshing ? "animate-spin" : ""}
-              />
-              Refresh
-            </button>
+            <p className="mt-3 text-3xl font-bold">{videos.length}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {publishedVideos} published
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 mt-5">
-            <button
-              onClick={() => setActiveTab("videos")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold ${
-                activeTab === "videos"
-                  ? "bg-blue-700 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
-            >
-              <Video size={17} />
-              Demo Videos
-            </button>
-
-            <button
-              onClick={() => setActiveTab("exams")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold ${
-                activeTab === "exams"
-                  ? "bg-blue-700 text-white"
-                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-              }`}
-            >
-              <ClipboardList size={17} />
-              Demo Exams
-            </button>
+          <div className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">Demo Exams</span>
+              <FileText className="h-5 w-5 text-violet-400" />
+            </div>
+            <p className="mt-3 text-3xl font-bold">{exams.length}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {publishedExams} published
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
-            <div className="relative">
-              <Search
-                size={17}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search demo content..."
-                className="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-blue-200"
-              />
+          <div className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">Questions</span>
+              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
             </div>
+            <p className="mt-3 text-3xl font-bold">{totalQuestions}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              Across all demo exams
+            </p>
+          </div>
 
-            <select
-              value={pathwayFilter}
-              onChange={(event) => setPathwayFilter(event.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white"
-            >
-              <option value="all">All pathways</option>
-              {pathways.map((pathway) => (
-                <option key={pathway} value={pathway}>
-                  {pathway}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-white"
-            >
-              <option value="all">All statuses</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-            </select>
+          <div className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-400">Draft Content</span>
+              <FileText className="h-5 w-5 text-amber-400" />
+            </div>
+            <p className="mt-3 text-3xl font-bold">
+              {videos.length - publishedVideos +
+                exams.length - publishedExams}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Not yet published
+            </p>
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3">
+          <button
+            onClick={() => {
+              setActiveTab("videos");
+              setSearch("");
+              setError("");
+              setSuccess("");
+            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${
+              activeTab === "videos"
+                ? "bg-sky-500 text-white"
+                : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            Demo Videos
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab("exams");
+              setSearch("");
+              setError("");
+              setSuccess("");
+            }}
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${
+              activeTab === "exams"
+                ? "bg-sky-500 text-white"
+                : "bg-slate-900 text-slate-400 hover:text-white"
+            }`}
+          >
+            Demo Exams
+          </button>
+        </div>
+
+        {/* Search and filters */}
+        <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-900 p-4 md:flex-row">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={`Search demo ${activeTab}...`}
+            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-sky-500"
+          />
+
+          <select
+            value={pathwayFilter}
+            onChange={(event) => setPathwayFilter(event.target.value)}
+            className="rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none"
+          >
+            <option value="all">All Pathways</option>
+            {pathways.map((pathway) => (
+              <option key={pathway} value={pathway}>
+                {pathway}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+
+        {/* Demo videos */}
         {activeTab === "videos" && (
-          <section>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-bold">Demo Videos</h2>
+          <section className="space-y-5">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h3 className="text-xl font-bold">Demo Videos</h3>
+                <p className="text-sm text-slate-400">
+                  Add free preview lessons for prospective students.
+                </p>
+              </div>
 
               <button
                 onClick={() => {
                   resetVideoForm();
                   setShowVideoForm(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold"
+                className="rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold hover:bg-sky-400"
               >
-                <Plus size={17} />
-                Add Video
+                + Add Demo Video
               </button>
             </div>
 
-            {showVideoForm && (
-              <form
-                onSubmit={saveVideo}
-                className="bg-white border border-slate-200 rounded-2xl p-5 mb-5 space-y-4"
-              >
-                <h3 className="font-bold">
-                  {editingVideo ? "Edit Demo Video" : "Add Demo Video"}
-                </h3>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Video Title
-                  </label>
-                  <input
-                    value={videoTitle}
-                    onChange={(event) => setVideoTitle(event.target.value)}
-                    required
-                    className="w-full p-3 rounded-lg border border-slate-200"
-                    placeholder="Enter video title"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={videoDescription}
-                    onChange={(event) =>
-                      setVideoDescription(event.target.value)
-                    }
-                    rows={3}
-                    className="w-full p-3 rounded-lg border border-slate-200"
-                    placeholder="Describe this demo video"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Video URL
-                  </label>
-                  <input
-                    type="url"
-                    value={videoUrl}
-                    onChange={(event) => setVideoUrl(event.target.value)}
-                    required
-                    className="w-full p-3 rounded-lg border border-slate-200"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    Use a public or appropriately shared video link.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Medical Pathway
-                  </label>
-                  <select
-                    value={videoPathway}
-                    onChange={(event) => setVideoPathway(event.target.value)}
-                    className="w-full p-3 rounded-lg border border-slate-200 bg-white"
-                  >
-                    {pathways.map((pathway) => (
-                      <option key={pathway} value={pathway}>
-                        {pathway}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-700 text-white text-sm font-semibold disabled:opacity-50"
-                  >
-                    <Save size={16} />
-                    {saving ? "Saving..." : "Save Video"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={resetVideoForm}
-                    className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {filteredVideos.length === 0 ? (
-              <EmptyState message="No demo videos found." />
+            {loading ? (
+              <div className="rounded-xl border border-white/10 bg-slate-900 p-10 text-center text-slate-400">
+                Loading demo videos...
+              </div>
+            ) : filteredVideos.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/20 bg-slate-900 p-10 text-center">
+                <FileText className="mx-auto mb-3 h-9 w-9 text-slate-500" />
+                <p className="font-medium">No demo videos found</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  Add a video or change your search filters.
+                </p>
+              </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filteredVideos.map((video) => (
                   <article
                     key={video.id}
-                    className="bg-white rounded-2xl border border-slate-200 p-5"
+                    className="overflow-hidden rounded-2xl border border-white/10 bg-slate-900"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <span className="inline-flex px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
-                          {video.pathway}
-                        </span>
-                        <h3 className="font-bold text-lg mt-3">
-                          {video.title}
-                        </h3>
-                      </div>
-
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                          video.isPublished
-                            ? "bg-green-50 text-green-700"
-                            : "bg-amber-50 text-amber-700"
-                        }`}
-                      >
-                        {video.isPublished ? "Published" : "Draft"}
-                      </span>
+                    <div className="flex aspect-video items-center justify-center bg-slate-800">
+                      <FileText className="h-12 w-12 text-slate-600" />
                     </div>
 
-                    <p className="text-sm text-slate-500 mt-2">
-                      {video.description || "No description provided."}
-                    </p>
+                    <div className="space-y-3 p-5">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-semibold">{video.title}</h4>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-1 text-xs ${
+                            video.isPublished
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-amber-500/15 text-amber-400"
+                          }`}
+                        >
+                          {video.isPublished ? "Published" : "Draft"}
+                        </span>
+                      </div>
 
-                    <a
-                      href={video.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-block mt-3 text-sm font-semibold text-blue-700 underline break-all"
-                    >
-                      Open video link
-                    </a>
+                      <p className="line-clamp-3 text-sm text-slate-400">
+                        {video.description}
+                      </p>
 
-                    <div className="flex flex-wrap gap-2 mt-5">
-                      <button
-                        onClick={() => startEditVideo(video)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold"
-                      >
-                        <Edit size={16} />
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => toggleVideoPublished(video)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold"
-                      >
-                        {video.isPublished ? (
-                          <EyeOff size={16} />
-                        ) : (
-                          <Eye size={16} />
+                      <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+                        <span className="rounded-md bg-slate-800 px-2 py-1">
+                          {video.pathway}
+                        </span>
+                        {video.duration && (
+                          <span className="rounded-md bg-slate-800 px-2 py-1">
+                            {video.duration}
+                          </span>
                         )}
-                        {video.isPublished ? "Unpublish" : "Publish"}
-                      </button>
+                      </div>
 
-                      <button
-                        onClick={() => removeVideo(video)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-semibold"
-                      >
-                        <Trash2 size={16} />
-                        Delete
-                      </button>
+                      <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
+                        <button
+                          onClick={() => startEditVideo(video)}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:bg-white/10"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          onClick={() => toggleVideoPublished(video)}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:bg-white/10"
+                        >
+                          {video.isPublished ? "Unpublish" : "Publish"}
+                        </button>
+
+                        <button
+                          onClick={() => removeVideo(video.id)}
+                          className="rounded-lg border border-red-500/30 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -1076,68 +1065,545 @@ export default function DemoManagementPage() {
           </section>
         )}
 
+        {/* Demo exams */}
         {activeTab === "exams" && (
-          <section>
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-lg font-bold">Demo Exams</h2>
+          <section className="space-y-5">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h3 className="text-xl font-bold">Demo Exams</h3>
+                <p className="text-sm text-slate-400">
+                  Create practice exams and manage their MCQs.
+                </p>
+              </div>
 
               <button
                 onClick={() => {
                   resetExamForm();
                   setShowExamForm(true);
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-semibold"
+                className="rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold hover:bg-sky-400"
               >
-                <Plus size={17} />
-                Create Demo Exam
+                + Create Demo Exam
               </button>
             </div>
 
-            {showExamForm && (
-              <form
-                onSubmit={saveExam}
-                className="bg-white border border-slate-200 rounded-2xl p-5 mb-5 space-y-4"
-              >
-                <h3 className="font-bold">
-                  {editingExam ? "Edit Demo Exam" : "Create Demo Exam"}
+            {loading ? (
+              <div className="rounded-xl border border-white/10 bg-slate-900 p-10 text-center text-slate-400">
+                Loading demo exams...
+              </div>
+            ) : filteredExams.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/20 bg-slate-900 p-10 text-center">
+                <FileText className="mx-auto mb-3 h-9 w-9 text-slate-500" />
+                <p className="font-medium">No demo exams found</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  Create an exam or change your search filters.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 lg:grid-cols-2">
+                {filteredExams.map((exam) => {
+                  const examQuestions = questions.filter(
+                    (question) => question.examId === exam.id
+                  );
+
+                  return (
+                    <article
+                      key={exam.id}
+                      className="rounded-2xl border border-white/10 bg-slate-900 p-5"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-lg font-semibold">
+                            {exam.title}
+                          </h4>
+                          <p className="mt-1 text-sm text-slate-400">
+                            {exam.description}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs ${
+                            exam.isPublished
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-amber-500/15 text-amber-400"
+                          }`}
+                        >
+                          {exam.isPublished ? "Published" : "Draft"}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+                        <span className="rounded-md bg-slate-800 px-2 py-1">
+                          {exam.pathway}
+                        </span>
+                        <span className="rounded-md bg-slate-800 px-2 py-1">
+                          {examQuestions.length} Questions
+                        </span>
+                        <span className="rounded-md bg-slate-800 px-2 py-1">
+                          {exam.duration} Minutes
+                        </span>
+                      </div>
+
+                      <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+                        <button
+                          onClick={() => {
+                            setSelectedExam(exam);
+                            setShowQuestionForm(false);
+                            setShowImport(false);
+                            setError("");
+                            setSuccess("");
+                          }}
+                          className="rounded-lg bg-sky-500 px-3 py-2 text-xs font-semibold hover:bg-sky-400"
+                        >
+                          Manage Questions
+                        </button>
+
+                        <button
+                          onClick={() => startEditExam(exam)}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:bg-white/10"
+                        >
+                          Edit Exam
+                        </button>
+
+                        <button
+                          onClick={() => toggleExamPublished(exam)}
+                          className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:bg-white/10"
+                        >
+                          {exam.isPublished ? "Unpublish" : "Publish"}
+                        </button>
+
+                        <button
+                          onClick={() => removeExam(exam)}
+                          className="rounded-lg border border-red-500/30 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+                {/* Selected exam question manager */}
+        {activeTab === "exams" && selectedExam && (
+          <section className="space-y-5 rounded-2xl border border-sky-500/30 bg-slate-900 p-5">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wider text-sky-400">
+                  Question Manager
+                </p>
+                <h3 className="mt-1 text-xl font-bold">
+                  {selectedExam.title}
                 </h3>
+                <p className="text-sm text-slate-400">
+                  {questions.filter(
+                    (question) => question.examId === selectedExam.id
+                  ).length}{" "}
+                  questions added
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedExam(null);
+                  resetQuestionForm();
+                  setShowImport(false);
+                }}
+                className="rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/10"
+              >
+                Close Question Manager
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  resetQuestionForm();
+                  setShowQuestionForm(true);
+                  setShowImport(false);
+                }}
+                className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold hover:bg-sky-400"
+              >
+                + Add Question
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowImport(true);
+                  setShowQuestionForm(false);
+                  setError("");
+                }}
+                className="flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/10"
+              >
+                <FileUp className="h-4 w-4" />
+                Bulk Import
+              </button>
+            </div>
+
+            {/* Question form */}
+            {showQuestionForm && (
+              <form
+                onSubmit={saveQuestion}
+                className="space-y-4 rounded-xl border border-white/10 bg-slate-950 p-5"
+              >
+                <h4 className="font-semibold">
+                  {editingQuestion ? "Edit Question" : "Add New Question"}
+                </h4>
 
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Exam Title
-                  </label>
-                  <input
-                    value={examTitle}
-                    onChange={(event) => setExamTitle(event.target.value)}
-                    required
-                    className="w-full p-3 rounded-lg border border-slate-200"
-                    placeholder="Enter exam title"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Description
+                  <label className="mb-2 block text-sm text-slate-300">
+                    Question
                   </label>
                   <textarea
-                    value={examDescription}
-                    onChange={(event) =>
-                      setExamDescription(event.target.value)
-                    }
+                    value={questionText}
+                    onChange={(event) => setQuestionText(event.target.value)}
+                    required
                     rows={3}
-                    className="w-full p-3 rounded-lg border border-slate-200"
-                    placeholder="Describe this demo exam"
+                    className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                    placeholder="Enter your MCQ question..."
                   />
                 </div>
 
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    {
+                      label: "Option A",
+                      value: optionA,
+                      setter: setOptionA
+                    },
+                    {
+                      label: "Option B",
+                      value: optionB,
+                      setter: setOptionB
+                    },
+                    {
+                      label: "Option C",
+                      value: optionC,
+                      setter: setOptionC
+                    },
+                    {
+                      label: "Option D",
+                      value: optionD,
+                      setter: setOptionD
+                    }
+                  ].map((option) => (
+                    <div key={option.label}>
+                      <label className="mb-2 block text-sm text-slate-300">
+                        {option.label}
+                      </label>
+                      <input
+                        value={option.value}
+                        onChange={(event) =>
+                          option.setter(event.target.value)
+                        }
+                        required
+                        className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                        placeholder={`${option.label} answer`}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Correct Answer
+                    </label>
+                    <select
+                      value={correctAnswer}
+                      onChange={(event) =>
+                        setCorrectAnswer(
+                          event.target.value as "A" | "B" | "C" | "D"
+                        )
+                      }
+                      className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-3 text-sm outline-none"
+                    >
+                      <option value="A">Option A</option>
+                      <option value="B">Option B</option>
+                      <option value="C">Option C</option>
+                      <option value="D">Option D</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Marks
+                    </label>
+                    <input
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      value={questionMarks}
+                      onChange={(event) =>
+                        setQuestionMarks(event.target.value)
+                      }
+                      required
+                      className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-3 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-sm font-semibold mb-1">
-                    Medical Pathway
+                  <label className="mb-2 block text-sm text-slate-300">
+                    Explanation (optional)
+                  </label>
+                  <textarea
+                    value={explanation}
+                    onChange={(event) => setExplanation(event.target.value)}
+                    rows={3}
+                    className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                    placeholder="Explain why this answer is correct..."
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold hover:bg-sky-400 disabled:opacity-50"
+                  >
+                    {saving
+                      ? "Saving..."
+                      : editingQuestion
+                        ? "Update Question"
+                        : "Save Question"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={resetQuestionForm}
+                    className="rounded-lg border border-white/10 px-5 py-2.5 text-sm hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Bulk import form */}
+            {showImport && (
+              <div className="space-y-4 rounded-xl border border-white/10 bg-slate-950 p-5">
+                <div>
+                  <h4 className="font-semibold">Bulk Import Questions</h4>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Paste one question per line using the format below.
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 p-3">
+                  <p className="mb-2 text-xs font-semibold text-sky-300">
+                    FORMAT
+                  </p>
+                  <code className="block break-all text-xs leading-6 text-slate-300">
+                    Question | Option A | Option B | Option C | Option D |
+                    Correct Answer | Explanation
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => GenUI.copy(demoImportExample)}
+                    className="mt-3 text-xs font-medium text-sky-400 hover:text-sky-300"
+                  >
+                    Copy example
+                  </button>
+                </div>
+
+                <textarea
+                  value={importText}
+                  onChange={(event) => setImportText(event.target.value)}
+                  rows={9}
+                  className="w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-3 font-mono text-xs outline-none focus:border-sky-500"
+                  placeholder={demoImportExample}
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={importQuestions}
+                    disabled={saving}
+                    className="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold hover:bg-sky-400 disabled:opacity-50"
+                  >
+                    {saving ? "Importing..." : "Import Questions"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowImport(false);
+                      setImportText("");
+                    }}
+                    className="rounded-lg border border-white/10 px-5 py-2.5 text-sm hover:bg-white/10"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Existing questions */}
+            <div className="space-y-3">
+              <h4 className="font-semibold">Exam Questions</h4>
+
+              {questions.filter(
+                (question) => question.examId === selectedExam.id
+              ).length === 0 ? (
+                <div className="rounded-xl border border-dashed border-white/20 p-8 text-center">
+                  <p className="text-sm text-slate-400">
+                    No questions added to this exam yet.
+                  </p>
+                </div>
+              ) : (
+                questions
+                  .filter(
+                    (question) => question.examId === selectedExam.id
+                  )
+                  .map((question, index) => (
+                    <article
+                      key={question.id}
+                      className="rounded-xl border border-white/10 bg-slate-950 p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-sky-400">
+                            Question {index + 1} · {question.marks || 1} mark(s)
+                          </p>
+                          <h5 className="mt-2 font-medium">
+                            {question.question}
+                          </h5>
+                        </div>
+
+                        <div className="flex shrink-0 gap-2">
+                          <button
+                            onClick={() => startEditQuestion(question)}
+                            className="rounded-lg border border-white/10 px-3 py-2 text-xs hover:bg-white/10"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => removeQuestion(question.id)}
+                            className="rounded-lg border border-red-500/30 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {question.options.map((option, optionIndex) => {
+                          const letter = ["A", "B", "C", "D"][optionIndex];
+                          const isCorrect =
+                            letter === question.correctAnswer;
+
+                          return (
+                            <div
+                              key={letter}
+                              className={`rounded-lg border p-3 text-sm ${
+                                isCorrect
+                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                  : "border-white/10 bg-slate-900 text-slate-400"
+                              }`}
+                            >
+                              <span className="mr-2 font-semibold">
+                                {letter}.
+                              </span>
+                              {option}
+                              {isCorrect && (
+                                <span className="ml-2 text-xs">
+                                  ✓ Correct
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {question.explanation && (
+                        <div className="mt-3 rounded-lg bg-slate-900 p-3 text-sm text-slate-400">
+                          <span className="font-semibold text-slate-300">
+                            Explanation:{" "}
+                          </span>
+                          {question.explanation}
+                        </div>
+                      )}
+                    </article>
+                  ))
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Video form modal */}
+        {showVideoForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4">
+            <form
+              onSubmit={saveVideo}
+              className="my-8 w-full max-w-xl space-y-4 rounded-2xl border border-white/10 bg-slate-900 p-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold">
+                  {editingVideo ? "Edit Demo Video" : "Add Demo Video"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={resetVideoForm}
+                  className="text-2xl text-slate-400 hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm text-slate-300">
+                  Video Title
+                </label>
+                <input
+                  value={videoTitle}
+                  onChange={(event) => setVideoTitle(event.target.value)}
+                  required
+                  className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                  placeholder="Enter video title"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm text-slate-300">
+                  Description
+                </label>
+                <textarea
+                  value={videoDescription}
+                  onChange={(event) =>
+                    setVideoDescription(event.target.value)
+                  }
+                  rows={3}
+                  className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                  placeholder="Describe this demo lesson"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm text-slate-300">
+                  Video URL
+                </label>
+                <input
+                  type="url"
+                  value={videoUrl}
+                  onChange={(event) => setVideoUrl(event.target.value)}
+                  required
+                  className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">
+                    Pathway
                   </label>
                   <select
-                    value={examPathway}
-                    onChange={(event) => setExamPathway(event.target.value)}
-                    className="w-full p-3 rounded-lg border border-slate-200 bg-white"
+                    value={videoPathway}
+                    onChange={(event) => setVideoPathway(event.target.value)}
+                    className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none"
                   >
                     {pathways.map((pathway) => (
                       <option key={pathway} value={pathway}>
@@ -1147,340 +1613,190 @@ export default function DemoManagementPage() {
                   </select>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Duration (minutes)
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="600"
-                      value={examDuration}
-                      onChange={(event) =>
-                        setExamDuration(event.target.value)
-                      }
-                      required
-                      className="w-full p-3 rounded-lg border border-slate-200"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold mb-1">
-                      Total Marks
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={examMarks}
-                      onChange={(event) => setExamMarks(event.target.value)}
-                      required
-                      className="w-full p-3 rounded-lg border border-slate-200"
-                    />
-                  </div>
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">
+                    Duration
+                  </label>
+                  <input
+                    value={videoDuration}
+                    onChange={(event) =>
+                      setVideoDuration(event.target.value)
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none"
+                    placeholder="e.g. 15 minutes"
+                  />
                 </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-700 text-white text-sm font-semibold disabled:opacity-50"
-                  >
-                    <Save size={16} />
-                    {saving ? "Saving..." : "Save Demo Exam"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={resetExamForm}
-                    className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {filteredExams.length === 0 ? (
-              <EmptyState message="No demo exams found." />
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {filteredExams.map((exam) => {
-                  const count = questions.filter(
-                    (question) => question.examId === exam.id
-                  ).length;
-
-                  return (
-                    <article
-                      key={exam.id}
-                      className="bg-white rounded-2xl border border-slate-200 p-5"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <span className="inline-flex px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
-                            {exam.pathway}
-                          </span>
-                          <h3 className="font-bold text-lg mt-3">
-                            {exam.title}
-                          </h3>
-                        </div>
-
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                            exam.isPublished
-                              ? "bg-green-50 text-green-700"
-                              : "bg-amber-50 text-amber-700"
-                          }`}
-                        >
-                          {exam.isPublished ? "Published" : "Draft"}
-                        </span>
-                      </div>
-
-                      <p className="text-sm text-slate-500 mt-2">
-                        {exam.description || "No description provided."}
-                      </p>
-
-                      <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-                                      <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-900">
-                  {count}
-                </p>
-                <p className="text-xs text-slate-500">
-                  Questions
-                </p>
               </div>
 
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-900">
-                  {exam.durationMinutes}
-                </p>
-                <p className="text-xs text-slate-500">
-                  Minutes
-                </p>
+              <label className="flex items-center gap-3 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={videoPublished}
+                  onChange={(event) =>
+                    setVideoPublished(event.target.checked)
+                  }
+                  className="h-4 w-4 accent-sky-500"
+                />
+                Publish this video immediately
+              </label>
+
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold hover:bg-sky-400 disabled:opacity-50"
+                >
+                  {saving
+                    ? "Saving..."
+                    : editingVideo
+                      ? "Update Video"
+                      : "Save Video"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={resetVideoForm}
+                  className="rounded-lg border border-white/10 px-5 py-2.5 text-sm hover:bg-white/10"
+                >
+                  Cancel
+                </button>
               </div>
-
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xl font-bold text-slate-900">
-                  {exam.totalMarks}
-                </p>
-                <p className="text-xs text-slate-500">
-                  Total Marks
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-5">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedExam(exam);
-                  setShowQuestionModal(true);
-                }}
-                className="flex-1 rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-              >
-                Manage Questions
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingExam(exam);
-                  setExamTitle(exam.title);
-                  setExamDescription(exam.description || "");
-                  setExamPathway(exam.pathway);
-                  setExamDuration(String(exam.durationMinutes));
-                  setExamMarks(String(exam.totalMarks));
-                  setShowExamForm(true);
-                }}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                <Edit size={16} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => toggleExamPublish(exam)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                {exam.isPublished ? "Unpublish" : "Publish"}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => removeExam(exam)}
-                className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  )}
-
-  {showQuestionModal && selectedExam && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3">
-      <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-5">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">
-              Manage Questions
-            </h2>
-            <p className="text-sm text-slate-500">
-              {selectedExam.title}
-            </p>
+            </form>
           </div>
+        )}
+        {/* Exam form modal */}
+        {showExamForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-4">
+            <form
+              onSubmit={saveExam}
+              className="my-8 w-full max-w-xl space-y-4 rounded-2xl border border-white/10 bg-slate-900 p-6"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold">
+                  {editingExam ? "Edit Demo Exam" : "Create Demo Exam"}
+                </h3>
 
-          <button
-            type="button"
-            onClick={() => {
-              setShowQuestionModal(false);
-              setSelectedExam(null);
-            }}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-          >
-            <X size={20} />
-          </button>
-        </div>
+                <button
+                  type="button"
+                  onClick={resetExamForm}
+                  className="text-2xl text-slate-400 hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
 
-        <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-          Correct answers are stored in the question bank. Do not give
-          students direct access to the examQuestions collection.
-        </p>
+              <div>
+                <label className="mb-2 block text-sm text-slate-300">
+                  Exam Title
+                </label>
 
-        
-        <div className="space-y-3">
-          {questions
-            .filter((question) => question.examId === selectedExam.id)
-            .map((question, index) => (
-              <div
-                key={question.id}
-                className="rounded-xl border border-slate-200 p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold text-blue-700">
-                      Question {index + 1}
-                    </p>
+                <input
+                  value={examTitle}
+                  onChange={(event) => setExamTitle(event.target.value)}
+                  required
+                  className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                  placeholder="Enter exam title"
+                />
+              </div>
 
-                    <p className="mt-1 font-semibold text-slate-900">
-                      {question.question}
-                    </p>
+              <div>
+                <label className="mb-2 block text-sm text-slate-300">
+                  Description
+                </label>
 
-                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {question.options.map((option, optionIndex) => {
-                        const isCorrect =
-                          question.correctAnswer ===
-                          String.fromCharCode(65 + optionIndex);
+                <textarea
+                  value={examDescription}
+                  onChange={(event) =>
+                    setExamDescription(event.target.value)
+                  }
+                  rows={3}
+                  className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none focus:border-sky-500"
+                  placeholder="Describe the demo exam"
+                />
+              </div>
 
-                        return (
-                          <p
-                            key={optionIndex}
-                            className={
-                              isCorrect
-                                ? "rounded-lg bg-green-50 p-2 text-sm font-semibold text-green-700"
-                                : "rounded-lg bg-slate-50 p-2 text-sm text-slate-600"
-                            }
-                          >
-                            {String.fromCharCode(65 + optionIndex)}. {option}
-                          </p>
-                        );
-                      })}
-                    </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">
+                    Pathway
+                  </label>
 
-                    {question.explanation && (
-                      <p className="mt-3 text-sm text-slate-500">
-                        Explanation: {question.explanation}
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => removeQuestion(question.id)}
-                    className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                    title="Delete question"
+                  <select
+                    value={examPathway}
+                    onChange={(event) =>
+                      setExamPathway(event.target.value)
+                    }
+                    className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none"
                   >
-                    <Trash2 size={16} />
-                  </button>
+                    {pathways.map((pathway) => (
+                      <option key={pathway} value={pathway}>
+                        {pathway}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm text-slate-300">
+                    Duration (minutes)
+                  </label>
+
+                  <input
+                    type="number"
+                    min="1"
+                    value={examDuration}
+                    onChange={(event) =>
+                      setExamDuration(event.target.value)
+                    }
+                    required
+                    className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-3 text-sm outline-none"
+                    placeholder="e.g. 30"
+                  />
                 </div>
               </div>
-            ))}
 
-          {questions.filter(
-            (question) => question.examId === selectedExam.id
-          ).length === 0 && (
-            <EmptyState message="No questions added to this exam yet." />
-          )}
-        </div>
+              <label className="flex items-center gap-3 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={examPublished}
+                  onChange={(event) =>
+                    setExamPublished(event.target.checked)
+                  }
+                  className="h-4 w-4 accent-sky-500"
+                />
+                Publish this exam immediately
+              </label>
 
-        <div className="mt-5 flex justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              setShowQuestionModal(false);
-              setSelectedExam(null);
-            }}
-            className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white"
-          >
-            Close
-          </button>
-       </div>
-      </div>
-    </div>
-  )}
-</section>
-</main>
-);
-}
+              <div className="flex flex-wrap gap-2 pt-2">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold hover:bg-sky-400 disabled:opacity-50"
+                >
+                  {saving
+                    ? "Saving..."
+                    : editingExam
+                      ? "Update Exam"
+                      : "Create Exam"}
+                </button>
 
-function SummaryCard({
-  title,
-  value,
-  icon: Icon,
-  color
-}: {
-  title: string;
-  value: number;
-  icon: React.ElementType;
-  color: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-slate-500">
-          {title}
-        </p>
+                <button
+                  type="button"
+                  onClick={resetExamForm}
+                  className="rounded-lg border border-white/10 px-5 py-2.5 text-sm hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
-        <div className={`rounded-xl p-2 ${color}`}>
-          <Icon size={20} />
-        </div>
-      </div>
-
-      <p className="mt-3 text-3xl font-bold text-slate-900">
-        {value}
-      </p>
+        <footer className="border-t border-white/10 pt-6 text-center text-xs text-slate-500">
+          Rose Coaching Academy (RCA) · Demo Content Administration
+        </footer>
+      </main>
     </div>
   );
 }
-
-function EmptyState({
-  message
-}: {
-  message: string;
-}) {
-  return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-      <FileText
-        size={30}
-        className="mx-auto mb-3 text-slate-400"
-      />
-
-      <p className="text-sm text-slate-500">
-        {message}
-      </p>
-    </div>
-  );
-        }
-        
+                
