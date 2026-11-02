@@ -1,5 +1,7 @@
+
 "use client";
 
+import Link from "next/link";
 import dynamic from "next/dynamic";
 
 const Heart3D = dynamic(
@@ -90,13 +92,13 @@ export default function Home() {
       {/* NAVIGATION */}
       <header className="site-header">
         <nav className="container main-nav">
-          <a href="/" className="brand">
+          <Link href="/" className="brand">
             <img
               src="/rcalogo.png"
               alt="Rose Coaching Academy logo"
             />
             <span>RCA</span>
-          </a>
+          </Link>
 
           <details className="mobile-menu">
             <summary aria-label="Open navigation menu">
@@ -106,28 +108,28 @@ export default function Home() {
             </summary>
 
             <div className="mobile-menu-panel">
-              <a href="/">Home</a>
-              <a href="#courses">Courses</a>
-              <a href="#membership">Membership</a>
-              <a href="#demo">Demo</a>
-              <a href="/login">Login</a>
-              <a href="/signup" className="mobile-signup">
+              <Link href="/">Home</Link>
+              <Link href="#courses">Courses</Link>
+              <Link href="#membership">Membership</Link>
+              <Link href="#demo">Demo</Link>
+              <Link href="/login">Login</Link>
+              <Link href="/signup" className="mobile-signup">
                 Signup
-              </a>
+              </Link>
             </div>
           </details>
 
           <div className="desktop-links">
-            <a className="nav-link" href="/">Home</a>
-            <a className="nav-link" href="#courses">Courses</a>
-            <a className="nav-link" href="#membership">
+            <Link className="nav-link" href="/">Home</Link>
+            <Link className="nav-link" href="#courses">Courses</Link>
+            <Link className="nav-link" href="#membership">
               Membership
-            </a>
-            <a className="nav-link" href="#demo">Demo</a>
-            <a className="nav-link" href="/login">Login</a>
-            <a className="primary-btn nav-signup" href="/signup">
+            </Link>
+            <Link className="nav-link" href="#demo">Demo</Link>
+            <Link className="nav-link" href="/login">Login</Link>
+            <Link className="primary-btn nav-signup" href="/signup">
               Signup
-            </a>
+            </Link>
           </div>
         </nav>
       </header>
@@ -151,13 +153,13 @@ export default function Home() {
             </p>
 
             <div className="hero-actions">
-              <a className="primary-btn" href="#membership">
+              <Link className="primary-btn" href="#membership">
                 Get Started →
-              </a>
+              </Link>
 
-              <a className="outline-btn" href="#courses">
+              <Link className="outline-btn" href="#courses">
                 Explore Courses
-              </a>
+              </Link>
             </div>
 
             <p className="hero-note">
@@ -171,7 +173,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-
+      
       {/* COURSES */}
       <section id="courses" className="section">
         <div className="container">
@@ -204,12 +206,12 @@ export default function Home() {
                   {course.description}
                 </p>
 
-                <a
+                <Link
                   href="#membership"
                   className="course-link"
                 >
                   Explore Program →
-                </a>
+                </Link>
               </article>
             ))}
           </div>
@@ -232,9 +234,9 @@ export default function Home() {
               designed around your selected pathway.
             </p>
 
-            <a className="primary-btn" href="/signup">
+            <Link className="primary-btn" href="/signup">
               View Membership Options
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -252,9 +254,9 @@ export default function Home() {
               resources planned for RCA students.
             </p>
 
-            <a className="primary-btn" href="/demo">
+            <Link className="primary-btn" href="/demo">
               Explore Demo
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -309,14 +311,14 @@ export default function Home() {
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <a href="/" className="footer-logo">
+              <Link href="/" className="footer-logo">
                 <img
                   src="/rcalogo.png"
                   alt="Rose Coaching Academy logo"
                 />
 
                 <span>Rose Coaching Academy</span>
-              </a>
+              </Link>
 
               <p>
                 Empowering medical students through focused
@@ -326,16 +328,16 @@ export default function Home() {
 
             <div>
               <h3>Explore RCA</h3>
-              <a href="/">Home</a>
-              <a href="#courses">Our Courses</a>
-              <a href="#membership">Membership</a>
-              <a href="#demo">Demo</a>
+              <Link href="/">Home</Link>
+              <Link href="#courses">Our Courses</Link>
+              <Link href="#membership">Membership</Link>
+              <Link href="#demo">Demo</Link>
             </div>
 
             <div>
               <h3>Student Account</h3>
-              <a href="/login">Student Login</a>
-              <a href="/signup">Create Account</a>
+              <Link href="/login">Student Login</Link>
+              <Link href="/signup">Create Account</Link>
             </div>
 
             <div>
@@ -357,5 +359,4 @@ export default function Home() {
       </footer>
     </main>
   );
-      }
-                
+              }
