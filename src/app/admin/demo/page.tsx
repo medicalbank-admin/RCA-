@@ -127,6 +127,7 @@ export default function DemoManagementPage() {
   const [examPathway, setExamPathway] = useState(pathways[0]);
   const [examDuration, setExamDuration] = useState("30");
   const [examMarks, setExamMarks] = useState("30");
+  const [examPublished, setExamPublished] = useState(false);
 
   // Question bank state
   const [selectedExam, setSelectedExam] = useState<DemoExam | null>(null);
@@ -369,6 +370,7 @@ export default function DemoManagementPage() {
     setExamMarks("30");
     setEditingExam(null);
     setShowExamForm(false);
+    setExamPublished(false);
   }
 
   function startEditExam(exam: DemoExam) {
@@ -379,6 +381,7 @@ export default function DemoManagementPage() {
     setExamDuration(String(exam.durationMinutes));
     setExamMarks(String(exam.totalMarks));
     setShowExamForm(true);
+    setExamPublished(exam.isPublished);
   }
 
   // Create or update a demo exam
@@ -414,7 +417,9 @@ export default function DemoManagementPage() {
         pathway: examPathway,
         durationMinutes: minutes,
         totalMarks: marks,
+        isPublished: examPublished,
         updatedAt: serverTimestamp()
+      
       };
 
       if (editingExam) {
