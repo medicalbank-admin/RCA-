@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -12,52 +13,30 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() &&
-        request.auth.token.admin == true;
+      return signedIn()
+        && request.auth.uid in [
+          'HdcKYuUZoRdr9lwths0IQzlg0t12'
+        ];
     }
 
     match /users/{uid} {
-
-      // Students can read their own profile.
-      // Admin access requires a trusted custom claim.
       allow get: if isOwner(uid) || isAdmin();
-
-      // Only admins can list all student profiles.
       allow list: if isAdmin();
 
-      // A student can create only their own initial profile.
       allow create: if isOwner(uid)
         && request.resource.data.keys().hasAll([
-          'uid',
-          'fullName',
-          'fatherName',
-          'nationalId',
-          'email',
-          'whatsapp',
-          'countryResidency',
-          'countryStudy',
-          'medicalProgram',
-          'medicalYear',
-          'graduationYear',
-          'courseToStudy',
-          'accountStatus',
-          'createdAt'
+          'uid', 'fullName', 'fatherName', 'nationalId',
+          'email', 'whatsapp', 'countryResidency',
+          'countryStudy', 'medicalProgram', 'medicalYear',
+          'graduationYear', 'courseToStudy',
+          'accountStatus', 'createdAt'
         ])
         && request.resource.data.keys().hasOnly([
-          'uid',
-          'fullName',
-          'fatherName',
-          'nationalId',
-          'email',
-          'whatsapp',
-          'countryResidency',
-          'countryStudy',
-          'medicalProgram',
-          'medicalYear',
-          'graduationYear',
-          'courseToStudy',
-          'accountStatus',
-          'createdAt'
+          'uid', 'fullName', 'fatherName', 'nationalId',
+          'email', 'whatsapp', 'countryResidency',
+          'countryStudy', 'medicalProgram', 'medicalYear',
+          'graduationYear', 'courseToStudy',
+          'accountStatus', 'createdAt'
         ])
         && request.resource.data.uid == uid
         && request.resource.data.email == request.auth.token.email
@@ -68,16 +47,36 @@ service cloud.firestore {
         ]
         && request.resource.data.courseToStudy is string
         && request.resource.data.fullName is string
+        && request.resource.data.fatherName is string
         && request.resource.data.nationalId is string
+        && request.resource.data.whatsapp is string
+        && request.resource.data.countryResidency is string
+        && request.resource.data.countryStudy is string
         && request.resource.data.createdAt == request.time;
 
-      // Students cannot change their own role, status,
-      // identity details, or membership information.
       allow update, delete: if isAdmin();
     }
 
-    // All other collections remain denied unless
-    // explicitly permitted in future rules.
+    match /memberships/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /courses/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /exams/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /demoContent/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /invoices/{id} {
+      allow read, write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
