@@ -1052,7 +1052,7 @@ export default function DemoManagementPage() {
                         </button>
 
                         <button
-                          onClick={() => removeVideo(video.id)}
+                          onClick={() => removeVideo(video)}
                           className="rounded-lg border border-red-500/30 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10"
                         >
                           Delete
