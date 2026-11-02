@@ -1,4 +1,3 @@
-
 "use client";
 
 import dynamic from "next/dynamic";
@@ -10,69 +9,79 @@ const Heart3D = dynamic(
     loading: () => (
       <div className="heart-3d-stage">
         <p className="heart-loading-text">
-          Preparing 3D heart anatomy...
+          Preparing your 3D anatomical heart...
         </p>
       </div>
-    )
+    ),
   }
 );
 
 const courses = [
   {
     title: "MBBS & MD",
-    description: "Structured medical education and academic support for medical students.",
+    description:
+      "Structured medical education and academic support for medical students.",
     icon: "🩺",
-    tag: "Medical Education"
+    tag: "Medical Education",
   },
   {
     title: "NRE Preparation",
-    description: "Focused preparation resources for the National Registration Examination.",
+    description:
+      "Focused preparation resources for the National Registration Examination.",
     icon: "📚",
-    tag: "Licensing Exam"
+    tag: "Licensing Exam",
   },
   {
     title: "USMLE Preparation",
-    description: "Build your medical knowledge and prepare for your USMLE journey.",
+    description:
+      "Build your medical knowledge and prepare for your USMLE journey.",
     icon: "🌎",
-    tag: "International Pathway"
+    tag: "International Pathway",
   },
   {
     title: "PLAB Preparation",
-    description: "Prepare for your professional medical licensing pathway in the UK.",
+    description:
+      "Prepare for your professional medical licensing pathway in the UK.",
     icon: "🎓",
-    tag: "International Pathway"
+    tag: "International Pathway",
   },
   {
     title: "SMLE Preparation",
-    description: "Study resources and exam preparation for the Saudi medical licensing exam.",
+    description:
+      "Study resources and exam preparation for the Saudi medical licensing exam.",
     icon: "🏥",
-    tag: "Licensing Exam"
+    tag: "Licensing Exam",
   },
   {
     title: "DHA, AMC & FCPS",
-    description: "Explore additional professional medical examination pathways.",
+    description:
+      "Explore additional professional medical examination pathways.",
     icon: "🔬",
-    tag: "Advanced Preparation"
-  }
+    tag: "Advanced Preparation",
+  },
 ];
 
 const faqs = [
   {
     q: "What is Rose Coaching Academy?",
-    a: "RCA is a medical coaching academy offering structured learning and exam preparation pathways."
+    a: "RCA is a medical coaching academy offering structured learning and exam preparation pathways.",
   },
   {
     q: "Which courses can I study?",
-    a: "Our pathways include MBBS, MD, NRE, USMLE, PLAB, SMLE, DHA, AMC and FCPS."
+    a: "Our pathways include MBBS, MD, NRE, USMLE, PLAB, SMLE, DHA, AMC and FCPS.",
   },
   {
     q: "How can I access courses?",
-    a: "Students can register, choose a membership plan and access enrolled courses through their dashboard."
+    a: "Students can register, choose a membership plan and access enrolled courses through their dashboard.",
   },
   {
     q: "Can I access my courses on mobile?",
-    a: "RCA is designed to work on mobile phones, tablets and desktop computers."
-  }
+    a: "RCA is designed to work on mobile phones, tablets and desktop computers.",
+  },
+  {
+    q: "Can I explore the human heart in 3D?",
+    a: "Yes. Our interactive anatomy experience allows you to rotate the heart, explore its external anatomy and switch to an internal cutaway view.",
+  },
 ];
 
 export default function Home() {
@@ -82,7 +91,10 @@ export default function Home() {
       <header className="site-header">
         <nav className="container main-nav">
           <a href="/" className="brand">
-            <img src="/rcalogo.png" alt="Rose Coaching Academy logo" />
+            <img
+              src="/rcalogo.png"
+              alt="Rose Coaching Academy logo"
+            />
             <span>RCA</span>
           </a>
 
@@ -108,7 +120,9 @@ export default function Home() {
           <div className="desktop-links">
             <a className="nav-link" href="/">Home</a>
             <a className="nav-link" href="#courses">Courses</a>
-            <a className="nav-link" href="#membership">Membership</a>
+            <a className="nav-link" href="#membership">
+              Membership
+            </a>
             <a className="nav-link" href="#demo">Demo</a>
             <a className="nav-link" href="/login">Login</a>
             <a className="primary-btn nav-signup" href="/signup">
@@ -151,7 +165,10 @@ export default function Home() {
             </p>
           </div>
 
-          <Heart3D />
+          {/* INTERACTIVE 3D HEART */}
+          <div className="hero-heart">
+            <Heart3D />
+          </div>
         </div>
       </section>
 
@@ -169,14 +186,28 @@ export default function Home() {
 
           <div className="course-grid">
             {courses.map((course) => (
-              <article className="course-card" key={course.title}>
-                <div className="course-icon">{course.icon}</div>
-                <p className="eyebrow course-tag">{course.tag}</p>
+              <article
+                className="course-card"
+                key={course.title}
+              >
+                <div className="course-icon">
+                  {course.icon}
+                </div>
+
+                <p className="eyebrow course-tag">
+                  {course.tag}
+                </p>
+
                 <h3>{course.title}</h3>
+
                 <p className="course-description">
                   {course.description}
                 </p>
-                <a href="#membership" className="course-link">
+
+                <a
+                  href="#membership"
+                  className="course-link"
+                >
                   Explore Program →
                 </a>
               </article>
@@ -186,15 +217,21 @@ export default function Home() {
       </section>
 
       {/* MEMBERSHIP */}
-      <section id="membership" className="section section-cream">
+      <section
+        id="membership"
+        className="section section-cream"
+      >
         <div className="container">
           <div className="section-heading">
             <span className="eyebrow">MEMBERSHIP</span>
+
             <h2>Invest in Your Medical Future</h2>
+
             <p>
               Access structured learning through a membership
               designed around your selected pathway.
             </p>
+
             <a className="primary-btn" href="/signup">
               View Membership Options
             </a>
@@ -207,11 +244,14 @@ export default function Home() {
         <div className="container">
           <div className="section-heading">
             <span className="eyebrow">EXPERIENCE RCA</span>
+
             <h2>Explore Our Learning Experience</h2>
+
             <p>
               Discover the teaching approach and learning
               resources planned for RCA students.
             </p>
+
             <a className="primary-btn" href="/demo">
               Explore Demo
             </a>
@@ -219,12 +259,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* COMMUNITY */}
+      {/* STUDENT COMMUNITY */}
       <section className="section section-cream">
         <div className="container">
           <div className="section-heading">
             <span className="eyebrow">STUDENT COMMUNITY</span>
+
             <h2>Learning Together, Growing Together</h2>
+
             <p>
               A supportive learning environment built around
               medical education and professional development.
@@ -233,6 +275,7 @@ export default function Home() {
 
           <div className="community-card">
             <h3>Your Success Story Starts Here</h3>
+
             <p>
               Student testimonials will appear here as RCA
               welcomes its first learners.
@@ -250,7 +293,10 @@ export default function Home() {
           </div>
 
           {faqs.map((faq) => (
-            <details className="faq-item" key={faq.q}>
+            <details
+              className="faq-item"
+              key={faq.q}
+            >
               <summary>{faq.q}</summary>
               <p>{faq.a}</p>
             </details>
@@ -268,6 +314,7 @@ export default function Home() {
                   src="/rcalogo.png"
                   alt="Rose Coaching Academy logo"
                 />
+
                 <span>Rose Coaching Academy</span>
               </a>
 
@@ -303,10 +350,12 @@ export default function Home() {
               © {new Date().getFullYear()} Rose Coaching Academy (RCA).
               All rights reserved.
             </p>
+
             <span>Learn · Practice · Excel</span>
           </div>
         </div>
       </footer>
     </main>
   );
-                  }
+      }
+                
