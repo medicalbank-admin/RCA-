@@ -117,6 +117,7 @@ export default function DemoManagementPage() {
   const [videoUrl, setVideoUrl] = useState("");
   const [videoDuration, setVideoDuration] = useState("");
   const [videoPathway, setVideoPathway] = useState(pathways[0]);
+  const [videoPublished, setVideoPublished] = useState(false);
 
   // Demo exam form state
   const [showExamForm, setShowExamForm] = useState(false);
@@ -240,6 +241,7 @@ export default function DemoManagementPage() {
   setVideoUrl("");
   setVideoDuration("");
   setVideoPathway(pathways[0]);
+  setVideoPublished(false);
   setEditingVideo(null);
   setShowVideoForm(false);
   }
@@ -251,6 +253,7 @@ export default function DemoManagementPage() {
   setVideoUrl(video.videoUrl);
   setVideoDuration(video.duration || "");
   setVideoPathway(video.pathway);
+  setVideoPublished(video.isPublished);
   setShowVideoForm(true);
   }
 
@@ -282,13 +285,14 @@ export default function DemoManagementPage() {
 
     try {
   const videoData = {
-    title: videoTitle.trim(),
-    description: videoDescription.trim(),
-    videoUrl: videoUrl.trim(),
-    duration: videoDuration.trim(),
-    pathway: videoPathway,
-    updatedAt: serverTimestamp()
-  };
+  title: videoTitle.trim(),
+  description: videoDescription.trim(),
+  videoUrl: videoUrl.trim(),
+  duration: videoDuration.trim(),
+  pathway: videoPathway,
+  isPublished: videoPublished,
+  updatedAt: serverTimestamp(),
+};
 
       if (editingVideo) {
         await updateDoc(
